@@ -1,0 +1,384 @@
+---
+title: "data_processing"
+author: "Joris Senn"
+date: "3/9/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(sf)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+# Loading the data
+ch <- read_sf("unprocessed_data/boundaries/Switzerland/switzerland.shp")
+cantons_unproc <- read_sf("unprocessed_data/boundaries/Cantons/cantons.shp")
+muns_unproc <- read_sf("unprocessed_data/boundaries/Municipalities/municipalities.shp")
+
+ele_prod_plants_csv <- read.csv("unprocessed_data/ElectricityProductionPlant.csv")
+potentials <- read.csv("unprocessed_data/Solarenergiepotenziale_Gemeinden_Daecher_und_Fassaden.csv")
+
+gdeverzeichnis <- read.csv("unprocessed_data/help/PLZO_CSV_LV95.csv", sep=";")
+```
+
+```{r}
+# Creating multipart features from single-part features of boundaries
+cantons <- cantons_unproc %>%
+  group_by(KANTONSNUM) %>%
+  summarize(name=max(NAME), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
+
+muns <- muns_unproc %>%
+  # removing municipalities in Liechtenstein
+  filter(BFS_NUMMER < 7000) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(name=max(NAME), knr = max(KANTONSNUM), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
+
+muns <- st_transform(muns, 2056)
+cantons <- st_transform(cantons, 2056)
+```
+
+```{r}
+# filtering solar energy production plants (subcat_2)
+pv_plants_csv <- ele_prod_plants_csv %>% 
+  filter(SubCategory == "subcat_2") %>%
+  mutate(id = row_number())
+
+# Fetching coordinates of plants with missing plant
+pv_plants_csv_corr <- pv_plants_csv %>%
+  # going from PLZ to coordinates
+  left_join(gdeverzeichnis, by=c("PostCode" = "PLZ")) %>%
+  # taking average coordinate across all hits
+  group_by(id) %>%
+  summarize(coord_x = mean(E), coord_y = mean(N))
+  
+# Inserting computed coordinates
+pv_plants_clean <- pv_plants_csv %>%
+  left_join(pv_plants_csv_corr, by = c("id" = "id")) %>%
+  mutate(GKODE = ifelse(is.na(X_x), coord_x, X_x),
+         GKODN = ifelse(is.na(X_y), coord_y, X_y)) %>%
+  select(id, Address, PostCode, Municipality, Canton, BeginningOfOperation, InitialPower, TotalPower, GKODE, GKODN)
+
+# converting electricity production plants to sf object
+pv_plants <- st_as_sf(pv_plants_clean, coords = c("GKODE", "GKODN"), crs = 2056, agr = "constant")
+
+# determining the year of installation
+pv_plants <- pv_plants %>%
+  mutate(year_installed = as.numeric(substr(BeginningOfOperation, start=1, stop=4))) %>%
+  filter(year_installed < 2023)
+```
+
+```{r warning=F}
+pv_plants_before2005 <- filter(pv_plants, year_installed < 2005)
+pv_plants_2005 <- filter(pv_plants, year_installed == 2005)
+pv_plants_2006 <- filter(pv_plants, year_installed == 2006)
+pv_plants_2007 <- filter(pv_plants, year_installed == 2007)
+pv_plants_2008 <- filter(pv_plants, year_installed == 2008)
+pv_plants_2009 <- filter(pv_plants, year_installed == 2009)
+pv_plants_2010 <- filter(pv_plants, year_installed == 2010)
+pv_plants_2011 <- filter(pv_plants, year_installed == 2011)
+pv_plants_2012 <- filter(pv_plants, year_installed == 2012)
+pv_plants_2013 <- filter(pv_plants, year_installed == 2013)
+pv_plants_2014 <- filter(pv_plants, year_installed == 2014)
+pv_plants_2015 <- filter(pv_plants, year_installed == 2015)
+pv_plants_2016 <- filter(pv_plants, year_installed == 2016)
+pv_plants_2017 <- filter(pv_plants, year_installed == 2017)
+pv_plants_2018 <- filter(pv_plants, year_installed == 2018)
+pv_plants_2019 <- filter(pv_plants, year_installed == 2019)
+pv_plants_2020 <- filter(pv_plants, year_installed == 2020)
+pv_plants_2021 <- filter(pv_plants, year_installed == 2021)
+pv_plants_2022 <- filter(pv_plants, year_installed == 2022)
+
+# Joining potentials and municipalities
+muns_before2005 <- st_join(x = muns, y = pv_plants_before2005) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_before2005 = sum(TotalPower, na.rm=T)) %>%
+  st_drop_geometry()
+
+muns_2005 <- st_join(x = muns, y = pv_plants_2005) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2005 = sum(TotalPower, na.rm=T)) %>%
+  st_drop_geometry()
+
+muns_2006 <- st_join(x = muns, y = pv_plants_2006) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2006 = sum(TotalPower, na.rm=T)) %>%
+  st_drop_geometry()
+
+muns_2007 <- st_join(x = muns, y = pv_plants_2007) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2007 = sum(TotalPower, na.rm=T)) %>%
+  st_drop_geometry()
+
+muns_2008 <- st_join(x = muns, y = pv_plants_2008) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2008 = sum(TotalPower, na.rm=T)) %>%
+  st_drop_geometry()
+
+muns_2009 <- st_join(x = muns, y = pv_plants_2009) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2009 = sum(TotalPower, na.rm=T)) %>%
+  st_drop_geometry()
+
+muns_2010 <- st_join(x = muns, y = pv_plants_2010) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2010 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2011 <- st_join(x = muns, y = pv_plants_2011) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2011 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2012 <- st_join(x = muns, y = pv_plants_2012) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2012 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2013 <- st_join(x = muns, y = pv_plants_2013) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2013 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2014 <- st_join(x = muns, y = pv_plants_2014) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2014 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2015 <- st_join(x = muns, y = pv_plants_2015) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2015 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2016 <- st_join(x = muns, y = pv_plants_2016) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2016 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2017 <- st_join(x = muns, y = pv_plants_2017) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2017 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2018 <- st_join(x = muns, y = pv_plants_2018) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2018 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2019 <- st_join(x = muns, y = pv_plants_2019) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2019 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2020 <- st_join(x = muns, y = pv_plants_2020) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2020 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2021 <- st_join(x = muns, y = pv_plants_2021) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2021 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+
+muns_2022 <- st_join(x = muns, y = pv_plants_2022) %>%
+  group_by(BFS_NUMMER) %>%
+  summarize(installed_kw_2022 = sum(TotalPower, na.rm = TRUE)) %>%
+  st_drop_geometry()
+```
+
+```{r}
+# Joining the results
+muns_kw_installed <- muns %>%
+  left_join(muns_before2005, by="BFS_NUMMER") %>%
+  left_join(muns_2005, by="BFS_NUMMER") %>%
+  left_join(muns_2006, by="BFS_NUMMER") %>%
+  left_join(muns_2007, by="BFS_NUMMER") %>%
+  left_join(muns_2008, by="BFS_NUMMER") %>%
+  left_join(muns_2009, by="BFS_NUMMER") %>%
+  left_join(muns_2010, by="BFS_NUMMER") %>%
+  left_join(muns_2011, by="BFS_NUMMER") %>%
+  left_join(muns_2012, by="BFS_NUMMER") %>%
+  left_join(muns_2013, by="BFS_NUMMER") %>%
+  left_join(muns_2014, by="BFS_NUMMER") %>%
+  left_join(muns_2015, by="BFS_NUMMER") %>%
+  left_join(muns_2016, by="BFS_NUMMER") %>%
+  left_join(muns_2017, by="BFS_NUMMER") %>%
+  left_join(muns_2018, by="BFS_NUMMER") %>%
+  left_join(muns_2019, by="BFS_NUMMER") %>%
+  left_join(muns_2020, by="BFS_NUMMER") %>%
+  left_join(muns_2021, by="BFS_NUMMER") %>%
+  left_join(muns_2022, by="BFS_NUMMER")
+
+muns_kw_installed <- muns_kw_installed %>%
+  mutate(installed_kw_total = 
+           installed_kw_before2005+
+           installed_kw_2005 +
+           installed_kw_2006 +
+           installed_kw_2007 +
+           installed_kw_2008 +
+           installed_kw_2009 +
+           installed_kw_2010 +
+           installed_kw_2011 +
+           installed_kw_2012 +
+           installed_kw_2013 +
+           installed_kw_2014 +
+           installed_kw_2015 +
+           installed_kw_2016 +
+           installed_kw_2017 +
+           installed_kw_2018 +
+           installed_kw_2019 +
+           installed_kw_2020 +
+           installed_kw_2021 +
+           installed_kw_2022)
+```
+
+```{r}
+# summing the results to cantons
+cantons_kw_installed_nongeo <- muns_kw_installed %>%
+  group_by(knr) %>%
+  summarize(installed_kw_before2005 = sum(installed_kw_before2005, na.rm = TRUE),
+            installed_kw_2005 = sum(installed_kw_2005, na.rm = TRUE),
+            installed_kw_2006 = sum(installed_kw_2006, na.rm = TRUE),
+            installed_kw_2007 = sum(installed_kw_2007, na.rm = TRUE),
+            installed_kw_2008 = sum(installed_kw_2008, na.rm = TRUE),
+            installed_kw_2009 = sum(installed_kw_2009, na.rm = TRUE),
+            installed_kw_2010 = sum(installed_kw_2010, na.rm = TRUE),
+            installed_kw_2011 = sum(installed_kw_2011, na.rm = TRUE),
+            installed_kw_2012 = sum(installed_kw_2012, na.rm = TRUE),
+            installed_kw_2013 = sum(installed_kw_2013, na.rm = TRUE),
+            installed_kw_2014 = sum(installed_kw_2014, na.rm = TRUE),
+            installed_kw_2015 = sum(installed_kw_2015, na.rm = TRUE),
+            installed_kw_2016 = sum(installed_kw_2016, na.rm = TRUE),
+            installed_kw_2017 = sum(installed_kw_2017, na.rm = TRUE),
+            installed_kw_2018 = sum(installed_kw_2018, na.rm = TRUE),
+            installed_kw_2019 = sum(installed_kw_2019, na.rm = TRUE),
+            installed_kw_2020 = sum(installed_kw_2020, na.rm = TRUE),
+            installed_kw_2021 = sum(installed_kw_2021, na.rm = TRUE),
+            installed_kw_2022 = sum(installed_kw_2022, na.rm = TRUE)
+            ) %>%
+  mutate(installed_kw_total = 
+           installed_kw_before2005+
+           installed_kw_2005 +
+           installed_kw_2006 +
+           installed_kw_2007 +
+           installed_kw_2008 +
+           installed_kw_2009 +
+           installed_kw_2010 +
+           installed_kw_2011 +
+           installed_kw_2012 +
+           installed_kw_2013 +
+           installed_kw_2014 +
+           installed_kw_2015 +
+           installed_kw_2016 +
+           installed_kw_2017 +
+           installed_kw_2018 +
+           installed_kw_2019 +
+           installed_kw_2020 +
+           installed_kw_2021 +
+           installed_kw_2022) %>%
+  st_drop_geometry()
+
+cantons_kw_installed <- left_join(cantons, cantons_kw_installed_nongeo, by=c("KANTONSNUM" = "knr"))
+```
+
+```{r}
+ch_kw_installed <- ch %>%
+  mutate(installed_kw_before2005 = sum(muns_kw_installed$installed_kw_before2005, na.rm = TRUE),
+            installed_kw_2005 = sum(muns_kw_installed$installed_kw_2005, na.rm = TRUE),
+            installed_kw_2006 = sum(muns_kw_installed$installed_kw_2006, na.rm = TRUE),
+            installed_kw_2007 = sum(muns_kw_installed$installed_kw_2007, na.rm = TRUE),
+            installed_kw_2008 = sum(muns_kw_installed$installed_kw_2008, na.rm = TRUE),
+            installed_kw_2009 = sum(muns_kw_installed$installed_kw_2009, na.rm = TRUE),
+            installed_kw_2010 = sum(muns_kw_installed$installed_kw_2010, na.rm = TRUE),
+            installed_kw_2011 = sum(muns_kw_installed$installed_kw_2011, na.rm = TRUE),
+            installed_kw_2012 = sum(muns_kw_installed$installed_kw_2012, na.rm = TRUE),
+            installed_kw_2013 = sum(muns_kw_installed$installed_kw_2013, na.rm = TRUE),
+            installed_kw_2014 = sum(muns_kw_installed$installed_kw_2014, na.rm = TRUE),
+            installed_kw_2015 = sum(muns_kw_installed$installed_kw_2015, na.rm = TRUE),
+            installed_kw_2016 = sum(muns_kw_installed$installed_kw_2016, na.rm = TRUE),
+            installed_kw_2017 = sum(muns_kw_installed$installed_kw_2017, na.rm = TRUE),
+            installed_kw_2018 = sum(muns_kw_installed$installed_kw_2018, na.rm = TRUE),
+            installed_kw_2019 = sum(muns_kw_installed$installed_kw_2019, na.rm = TRUE),
+            installed_kw_2020 = sum(muns_kw_installed$installed_kw_2020, na.rm = TRUE),
+            installed_kw_2021 = sum(muns_kw_installed$installed_kw_2021, na.rm = TRUE),
+            installed_kw_2022 = sum(muns_kw_installed$installed_kw_2022, na.rm = TRUE)) %>%
+  mutate(installed_kw_total = 
+           installed_kw_before2005+
+           installed_kw_2005 +
+           installed_kw_2006 +
+           installed_kw_2007 +
+           installed_kw_2008 +
+           installed_kw_2009 +
+           installed_kw_2010 +
+           installed_kw_2011 +
+           installed_kw_2012 +
+           installed_kw_2013 +
+           installed_kw_2014 +
+           installed_kw_2015 +
+           installed_kw_2016 +
+           installed_kw_2017 +
+           installed_kw_2018 +
+           installed_kw_2019 +
+           installed_kw_2020 +
+           installed_kw_2021 +
+           installed_kw_2022) %>%
+  select(NAME, EINWOHNERZ, starts_with("installed_kw"))
+```
+
+```{r}
+# potential
+potential_muns <- potentials %>%
+  inner_join(muns, by=c("MunicipalityNumber" = "BFS_NUMMER")) %>%
+  select(MunicipalityNumber, 
+         knr,
+         Scenario1_RoofsOnly_PotentialSolarElectricity_GWh,
+         Scenario2_RoofsOnly_PotentialSolarElectricity_GWh,
+         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh,
+         Scenario4_RoofsFacades_PotentialSolarElectricity_GWh)
+
+potential_cantons <- potential_muns %>%
+  group_by(knr) %>%
+  summarize(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh = sum(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh),
+            Scenario2_RoofsOnly_PotentialSolarElectricity_GWh = sum(Scenario2_RoofsOnly_PotentialSolarElectricity_GWh),
+            Scenario3_RoofsFacades_PotentialSolarElectricity_GWh = sum(Scenario3_RoofsFacades_PotentialSolarElectricity_GWh),
+            Scenario4_RoofsFacades_PotentialSolarElectricity_GWh = sum(Scenario4_RoofsFacades_PotentialSolarElectricity_GWh))
+
+muns_installed_pot <- left_join(muns_kw_installed, potential_muns, by=c("BFS_NUMMER" = "MunicipalityNumber"))
+cantons_installed_pot <- left_join(cantons_kw_installed, potential_cantons, by=c("KANTONSNUM" = "knr"))
+
+ch_installed_pot <- ch_kw_installed %>%
+  mutate(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario1_RoofsOnly_PotentialSolarElectricity_GWh),
+         Scenario2_RoofsOnly_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario2_RoofsOnly_PotentialSolarElectricity_GWh),
+         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario3_RoofsFacades_PotentialSolarElectricity_GWh),
+         Scenario4_RoofsFacades_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario4_RoofsFacades_PotentialSolarElectricity_GWh))
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data= muns_installed_pot, aes(fill=installed_kw_total/pop), lwd=0.1) +
+  theme_void()
+```
+
+```{r}
+ggplot() +
+  geom_sf(data= muns_installed_pot, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
+  theme_void()
+```
+
+```{r}
+ggplot() +
+  geom_sf(data= cantons_installed_pot, aes(fill=installed_kw_total/pop), lwd=0.1) +
+  theme_void()
+```
+
+```{r}
+ggplot() +
+  geom_sf(data= cantons_installed_pot, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
+  theme_void()
+```
