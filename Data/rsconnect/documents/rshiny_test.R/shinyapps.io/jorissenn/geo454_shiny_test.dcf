@@ -1,0 +1,14 @@
+name: geo454_shiny_test
+title: geo454_shiny_test
+username:
+account: jorissenn
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8546664
+bundleId: 6948853
+url: https://jorissenn.shinyapps.io/geo454_shiny_test/
+when: 1678643943.87443
+lastSyncTime: 1678643943.87447
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: data_processing.Rmd
