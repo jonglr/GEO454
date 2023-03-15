@@ -20,6 +20,7 @@ library(ggplot2)
 ch <- read_sf("unprocessed_data/boundaries/Switzerland/switzerland.shp")
 cantons_unproc <- read_sf("unprocessed_data/boundaries/Cantons/cantons.shp")
 muns_unproc <- read_sf("unprocessed_data/boundaries/Municipalities/municipalities.shp")
+typology_unproc <- read_sf("unprocessed_data/boundaries/Typology/mun_typology.shp")
 
 ele_prod_plants_csv <- read.csv("unprocessed_data/ElectricityProductionPlant.csv")
 potentials <- read.csv("unprocessed_data/Solarenergiepotenziale_Gemeinden_Daecher_und_Fassaden.csv")
@@ -39,8 +40,13 @@ muns <- muns_unproc %>%
   group_by(BFS_NUMMER) %>%
   summarize(name=max(NAME), knr = max(KANTONSNUM), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
 
+typ <- typology_unproc %>%
+  group_by(TYP) %>%
+  summarize(name=max(NAME), geometry = st_union(geometry))
+
 muns <- st_transform(muns, 2056)
 cantons <- st_transform(cantons, 2056)
+typ <- st_transform(typ, 2056)
 ```
 
 ```{r}
@@ -49,7 +55,7 @@ pv_plants_csv <- ele_prod_plants_csv %>%
   filter(SubCategory == "subcat_2") %>%
   mutate(id = row_number())
 
-# Fetching coordinates of plants with missing plant
+# Fetching coordinates of plants with missing coordinates
 pv_plants_csv_corr <- pv_plants_csv %>%
   # going from PLZ to coordinates
   left_join(gdeverzeichnis, by=c("PostCode" = "PLZ")) %>%
