@@ -1,0 +1,57 @@
+---
+title: "Untitled"
+author: "Joris Senn"
+date: "3/16/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+muns <- read.csv("processed_data/municipalities.csv")
+cantons <- read.csv("processed_data/cantons.csv")
+typ <- read.csv("processed_data/typology.csv")
+ch <- read.csv("processed_data/switzerland.csv")
+```
+
+```{r}
+# type can be Switzerland, Canton, Typology or Municipality
+type <- "Typology"
+name_to_viz <- "Big centers"
+
+if (type == "Switzerland") {
+  viz <- ch %>%
+    select(starts_with("installed_kw") &! ends_with("total"))
+} else if (type == "Canton") {
+  viz <- filter(cantons, name == name_to_viz) %>%
+    select(starts_with("installed_kw") &! ends_with("total"))
+} else if (type == "Typology") {
+  viz <- filter(typ, name == name_to_viz) %>%
+    select(starts_with("installed_kw") &! ends_with("total"))  
+} else if (type == "Municipality") {
+  viz <- filter(muns, name == name_to_viz) %>%
+    select(starts_with("installed_kw") &! ends_with("total"))    
+}
+
+years <- seq(2004, 2022)
+power <- cumsum(c(viz[1,]))
+
+if (type == "Municipality" | type == "Canton") {
+  title = paste("Power of photovoltaic plants in", type, name_to_viz)
+} else {
+  title = paste("Power of photovoltaic plants in", name_to_viz)
+}
+
+to_visualize <- data.frame(years = years, power = power)
+
+ggplot(to_visualize) +
+  geom_line(mapping=aes(x = years, y =power)) +
+  labs(title = title, x="", y="Total operating power [kW]") +
+  scale_y_continuous(labels= comma) +
+  theme_classic()
+```
+
