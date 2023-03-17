@@ -21,7 +21,7 @@ library(data.table)
 ch <- read_sf("unprocessed_data/boundaries/Switzerland/switzerland.shp")
 cantons_unproc <- read_sf("unprocessed_data/boundaries/Cantons/cantons.shp")
 muns_unproc <- read_sf("unprocessed_data/boundaries/Municipalities/municipalities.shp")
-typology_unproc <- read_sf("unprocessed_data/boundaries/Typology/mun_typology.shp")
+typology_unproc <- st_make_valid(read_sf("unprocessed_data/boundaries/Typology/mun_typology.shp"))
 
 ele_prod_plants_csv <- read.csv("unprocessed_data/ElectricityProductionPlant.csv")
 potentials <- read.csv("unprocessed_data/Solarenergiepotenziale_Gemeinden_Daecher_und_Fassaden.csv")
@@ -581,7 +581,7 @@ ggplot() +
 type_names <- c("Big centers", "Secondary centers of big centers", "Crown big centers", "Medium centers", "Crown medium centers", "Small centers", "Peri-urban rural communes", "Agricultural communes", "Tourist communes")
 typ_installed_pot$name <- type_names
 
-# Add zeros for NA values
+# Add zeros for NA values, make sure all names are english in all files
 
 # Saving processed data
 write.csv(muns_installed_pot %>% st_drop_geometry(), "processed_data/municipalities.csv")
