@@ -1,0 +1,14 @@
+name: geo454_solar_energy
+title: geo454_solar_energy
+username:
+account: jorissenn
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8604138
+bundleId: 6975918
+url: https://jorissenn.shinyapps.io/geo454_solar_energy/
+when: 1679154931.31473
+lastSyncTime: 1679154931.31475
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: data_processing.Rmd|rshiny_test/rshiny_test.R|rshiny_test/shiny_power_over_time.R|rshiny_test/visualization_test.Rmd|unprocessed_data

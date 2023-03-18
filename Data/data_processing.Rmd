@@ -235,7 +235,7 @@ muns_kw_installed <- muns %>%
   left_join(muns_2022, by="BFS_NUMMER")
 
 muns_kw_installed <- muns_kw_installed %>%
-  mutate(kw_total = 
+  mutate(kw_tot = 
            kw_b2005+
            kw_2005 +
            kw_2006 +
@@ -379,7 +379,7 @@ typ_kw_installed <- typ %>%
   left_join(typ_2022, by="TYP")
 
 typ_kw_installed <- typ_kw_installed %>%
-  mutate(kw_total = 
+  mutate(kw_tot = 
            kw_b2005+
            kw_2005 +
            kw_2006 +
@@ -426,7 +426,7 @@ cantons_kw_installed_nongeo <- muns_kw_installed %>%
             kw_2021 = sum(kw_2021, na.rm = TRUE),
             kw_2022 = sum(kw_2022, na.rm = TRUE)
             ) %>%
-  mutate(kw_total = 
+  mutate(kw_tot = 
            kw_b2005+
            kw_2005 +
            kw_2006 +
@@ -472,8 +472,8 @@ ch_kw_installed <- ch %>%
             kw_2020 = sum(muns_kw_installed$kw_2020, na.rm = TRUE),
             kw_2021 = sum(muns_kw_installed$kw_2021, na.rm = TRUE),
             kw_2022 = sum(muns_kw_installed$kw_2022, na.rm = TRUE)) %>%
-  mutate(kw_total = 
-           kw_before2005+
+  mutate(kw_tot = 
+           kw_b2005 +
            kw_2005 +
            kw_2006 +
            kw_2007 +
@@ -492,40 +492,31 @@ ch_kw_installed <- ch %>%
            kw_2020 +
            kw_2021 +
            kw_2022) %>%
-  select(NAME, EINWOHNERZ, starts_with("installed_kw"))
+  select(NAME, EINWOHNERZ, starts_with("kw"))
 ```
 
 ```{r}
-# potential
+# solar energy potential
 potential_muns <- potentials %>%
   inner_join(muns, by=c("MunicipalityNumber" = "BFS_NUMMER")) %>%
   select(MunicipalityNumber, 
          knr,
          Scenario1_RoofsOnly_PotentialSolarElectricity_GWh,
-         Scenario2_RoofsOnly_PotentialSolarElectricity_GWh,
-         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh,
-         Scenario4_RoofsFacades_PotentialSolarElectricity_GWh) %>%
-  rename(scenario1 = Scenario1_RoofsOnly_PotentialSolarElectricity_GWh,
-         scenario2 = Scenario2_RoofsOnly_PotentialSolarElectricity_GWh,
-         scenario3 = Scenario3_RoofsFacades_PotentialSolarElectricity_GWh,
-         scenario4 = Scenario4_RoofsFacades_PotentialSolarElectricity_GWh
-           )
+         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh) %>%
+  rename(p_rf = Scenario1_RoofsOnly_PotentialSolarElectricity_GWh,
+         p_rf_fac = Scenario3_RoofsFacades_PotentialSolarElectricity_GWh)
 
 potential_cantons <- potential_muns %>%
   group_by(knr) %>%
-  summarize(Scenario1 = sum(scenario1),
-            Scenario2 = sum(scenario2),
-            Scenario3 = sum(scenario3),
-            Scenario4 = sum(scenario4))
+  summarize(p_rf = sum(p_rf),
+            p_rf_fac = sum(p_rf_fac))
 
 muns_installed_pot <- left_join(muns_kw_installed, potential_muns, by=c("BFS_NUMMER" = "MunicipalityNumber"))
 cantons_installed_pot <- left_join(cantons_kw_installed, potential_cantons, by=c("KANTONSNUM" = "knr"))
 
 ch_installed_pot <- ch_kw_installed %>%
-  mutate(scenario1 = sum(potential_muns$scenario1),
-         scenario2 = sum(potential_muns$scenario2),
-         scenario3 = sum(potential_muns$scenario3),
-         scenario4 = sum(potential_muns$scenario4))
+  mutate(p_rf = sum(potential_muns$p_rf),
+         p_rf_fac = sum(potential_muns$p_rf_fac))
 ```
 
 ```{r}
@@ -534,10 +525,8 @@ typology_unproc <- left_join(typology_unproc, potentials, by=c("GDE_NO" = "Munic
 
 potential_typ <- typology_unproc %>%
   group_by(TYP) %>%
-  summarize(scenario1 = sum(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh, na.rm=T),
-            scenario2 = sum(Scenario2_RoofsOnly_PotentialSolarElectricity_GWh, na.rm=T),
-            scenario3 = sum(Scenario3_RoofsFacades_PotentialSolarElectricity_GWh, na.rm=T),
-            scenario4 = sum(Scenario4_RoofsFacades_PotentialSolarElectricity_GWh, na.rm=T)
+  summarize(p_rf = sum(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh, na.rm=T),
+            p_rf_fac = sum(Scenario3_RoofsFacades_PotentialSolarElectricity_GWh, na.rm=T)
             ) %>%
   st_drop_geometry()
 
@@ -546,10 +535,13 @@ typ_installed_pot <- left_join(typ_kw_installed, potential_typ, by="TYP")
 
 ```{r}
 # German --> English
-type_names <- c("Big centers", "Secondary centers of big centers", "Crown big centers", "Medium centers", "Crown medium centers", "Small centers", "Peri-urban rural communes", "Agricultural communes", "Tourist communes")
+type_names <- c("Big Centers", "Secondary Centers Of Big Benters", "Crown Big Centers", "Medium Centers", "Crown Medium Centers", "Small Centers", "Peri-urban Rural Communes", "Agricultural Communes", "Tourist Communes")
 typ_installed_pot$name <- type_names
 
 ch_installed_pot$NAME <- "Switzerland"
+
+ch_installed_pot <- ch_installed_pot %>%
+  rename(name = NAME)
 ```
 
 ```{r}
@@ -557,43 +549,43 @@ ch_installed_pot$NAME <- "Switzerland"
 muns_installed_pot_simplified <- st_simplify(muns_installed_pot, preserveTopology = T, dTolerance=250)
 cantons_installed_pot_simplified <- st_simplify(cantons_installed_pot, preserveTopology = T, dTolerance=250)
 typ_installed_pot_simplified <- st_simplify(typ_installed_pot, preserveTopology = T, dTolerance=250)
-ch_installed_pot_simplified <- st_simplify(ch_installed_pot, preserveTopology = T, dTolerance=500)
+ch_installed_pot_simplified <- st_simplify(ch_installed_pot, preserveTopology = T, dTolerance=250)
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= muns_installed_pot_simplified, aes(fill=installed_kw_total/pop), lwd=0.1) +
+  geom_sf(data= muns_installed_pot_simplified, aes(fill=kw_tot/pop), lwd=0.1) +
   theme_void()
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= muns_installed_pot_simplified, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
+  geom_sf(data= muns_installed_pot_simplified, aes(fill=p_rf), lwd=0.01) +
   theme_void()
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= typ_installed_pot_simplified, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
+  geom_sf(data= typ_installed_pot_simplified, aes(fill=p_rf), lwd=0.01) +
   theme_void()
 ```
 
 
 ```{r}
 ggplot() +
-  geom_sf(data= cantons_installed_pot_simplified, aes(fill=installed_kw_total/pop), lwd=0.1) +
+  geom_sf(data= cantons_installed_pot_simplified, aes(fill=kw_tot/pop), lwd=0.1) +
   theme_void()
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= cantons_installed_pot_simplified, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
+  geom_sf(data= cantons_installed_pot_simplified, aes(fill=p_rf), lwd=0.01) +
   theme_void()
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= typ_installed_pot_simplified, aes(fill=installed_kw_total/pop), lwd=0.1) +
+  geom_sf(data= typ_installed_pot_simplified, aes(fill=kw_tot/pop), lwd=0.1) +
   theme_void()
 ```
 
@@ -611,4 +603,11 @@ st_write(typ_installed_pot_simplified, "processed_data/typology/typology.shp")
 st_write(ch_installed_pot_simplified, "processed_data/switzerland/switzerland.shp")
 ```
 
+```{r}
+# Check whether data was exported correctly
+processed_muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
+processed_cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
+processed_typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
+processed_ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
+```
 
