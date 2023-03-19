@@ -535,7 +535,7 @@ typ_installed_pot <- left_join(typ_kw_installed, potential_typ, by="TYP")
 
 ```{r}
 # German --> English
-type_names <- c("Big Centers", "Secondary Centers Of Big Benters", "Crown Big Centers", "Medium Centers", "Crown Medium Centers", "Small Centers", "Peri-urban Rural Communes", "Agricultural Communes", "Tourist Communes")
+type_names <- c("Big Centers", "Secondary Centers Of Big Centers", "Crown Big Centers", "Medium Centers", "Crown Medium Centers", "Small Centers", "Peri-urban Rural Communes", "Agricultural Communes", "Tourist Communes")
 typ_installed_pot$name <- type_names
 
 ch_installed_pot$NAME <- "Switzerland"
