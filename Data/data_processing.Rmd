@@ -545,47 +545,123 @@ ch_installed_pot <- ch_installed_pot %>%
 ```
 
 ```{r}
+# kW --> kWh
+# TO CLARIFY: what does this mean?
+factor <- 950
+
+ch_gwh_pot <- ch_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)
+
+cantons_gwh_pot <- cantons_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)
+
+typ_gwh_pot <- typ_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)
+
+muns_gwh_pot <- muns_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)  
+```
+
+```{r}
 # simplying geometry
-muns_installed_pot_simplified <- st_simplify(muns_installed_pot, preserveTopology = T, dTolerance=250)
-cantons_installed_pot_simplified <- st_simplify(cantons_installed_pot, preserveTopology = T, dTolerance=250)
-typ_installed_pot_simplified <- st_simplify(typ_installed_pot, preserveTopology = T, dTolerance=250)
-ch_installed_pot_simplified <- st_simplify(ch_installed_pot, preserveTopology = T, dTolerance=250)
+muns_installed_pot_simplified <- st_simplify(muns_gwh_pot, preserveTopology = T, dTolerance=250)
+cantons_installed_pot_simplified <- st_simplify(cantons_gwh_pot, preserveTopology = T, dTolerance=250)
+typ_installed_pot_simplified <- st_simplify(typ_gwh_pot, preserveTopology = T, dTolerance=250)
+ch_installed_pot_simplified <- st_simplify(ch_gwh_pot, preserveTopology = T, dTolerance=250)
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= muns_installed_pot_simplified, aes(fill=kw_tot/pop), lwd=0.1) +
+  geom_sf(data= muns_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.1) +
   theme_void()
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= muns_installed_pot_simplified, aes(fill=p_rf), lwd=0.01) +
-  theme_void()
-```
-
-```{r}
-ggplot() +
-  geom_sf(data= typ_installed_pot_simplified, aes(fill=p_rf), lwd=0.01) +
+  geom_sf(data= typ_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.01) +
   theme_void()
 ```
 
 
 ```{r}
 ggplot() +
-  geom_sf(data= cantons_installed_pot_simplified, aes(fill=kw_tot/pop), lwd=0.1) +
-  theme_void()
-```
-
-```{r}
-ggplot() +
-  geom_sf(data= cantons_installed_pot_simplified, aes(fill=p_rf), lwd=0.01) +
-  theme_void()
-```
-
-```{r}
-ggplot() +
-  geom_sf(data= typ_installed_pot_simplified, aes(fill=kw_tot/pop), lwd=0.1) +
+  geom_sf(data= cantons_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.1) +
   theme_void()
 ```
 

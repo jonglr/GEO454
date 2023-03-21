@@ -10,48 +10,42 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## R Markdown
-
 ```{r}
-muns <- read.csv("processed_data/municipalities.csv")
-cantons <- read.csv("processed_data/cantons.csv")
-typ <- read.csv("processed_data/typology.csv")
-ch <- read.csv("processed_data/switzerland.csv")
+library(sf)
+library(dplyr)
+library(ggplot2)
 ```
 
 ```{r}
-# type can be Switzerland, Canton, Typology or Municipality
-type <- "Typology"
-name_to_viz <- "Big centers"
+muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
+cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
+typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
+ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
+```
 
-if (type == "Switzerland") {
-  viz <- ch %>%
-    select(starts_with("installed_kw") &! ends_with("total"))
-} else if (type == "Canton") {
-  viz <- filter(cantons, name == name_to_viz) %>%
-    select(starts_with("installed_kw") &! ends_with("total"))
-} else if (type == "Typology") {
-  viz <- filter(typ, name == name_to_viz) %>%
-    select(starts_with("installed_kw") &! ends_with("total"))  
-} else if (type == "Municipality") {
-  viz <- filter(muns, name == name_to_viz) %>%
-    select(starts_with("installed_kw") &! ends_with("total"))    
-}
+```{r}
+st_drop_geometry(ch)[1, "p_rf_fac"]
+```
 
+
+```{r}
 years <- seq(2004, 2022)
-power <- cumsum(c(viz[1,]))
 
-if (type == "Municipality" | type == "Canton") {
-  title = paste("Power of photovoltaic plants in", type, name_to_viz)
-} else {
-  title = paste("Power of photovoltaic plants in", name_to_viz)
-}
+wadi <- muns %>% 
+  filter(name == "Wädenswil") %>%
+  select(starts_with("gwh") & !ends_with("tot")) %>%
+  st_drop_geometry()
 
-to_visualize <- data.frame(years = years, power = power)
+zh <- cantons %>% 
+  filter(name == "Zürich") %>%
+  select(starts_with("gwh") & !ends_with("tot")) %>%
+  st_drop_geometry()
 
-ggplot(to_visualize) +
-  geom_line(mapping=aes(x = years, y =power)) +
-  labs(title = title, x="", y="Total operating power [kW]") +
-  scale_y_continuous(labels= comma) +
-  theme_classic()
+to_visualize <- data.frame(years = years, gwh = cumsum(c(wadi[1,])), name="Wädenswil")
+
+to_visualize <- rbind(to_visualize, data.frame(years = years, gwh = cumsum(c(zh[1,])), name="Zürich"))
+
+ggplot() +
+  geom_line(to_visualize, mapping=aes(x=years, y=gwh, col=name))
 ```
 
