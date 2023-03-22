@@ -14,6 +14,7 @@ library(sf)
 library(dplyr)
 library(ggplot2)
 library(data.table)
+library(rmapshaper)
 ```
 
 ```{r}
@@ -639,11 +640,17 @@ muns_gwh_pot <- muns_installed_pot %>%
 ```
 
 ```{r}
-# simplying geometry
-muns_installed_pot_simplified <- st_simplify(muns_gwh_pot, preserveTopology = T, dTolerance=250)
-cantons_installed_pot_simplified <- st_simplify(cantons_gwh_pot, preserveTopology = T, dTolerance=250)
-typ_installed_pot_simplified <- st_simplify(typ_gwh_pot, preserveTopology = T, dTolerance=250)
-ch_installed_pot_simplified <- st_simplify(ch_gwh_pot, preserveTopology = T, dTolerance=250)
+# simplfiying geometry (sf)
+#muns_installed_pot_simplified <- st_simplify(muns_gwh_pot, preserveTopology = T, dTolerance=250)
+#cantons_installed_pot_simplified <- st_simplify(cantons_gwh_pot, preserveTopology = T, dTolerance=250)
+#typ_installed_pot_simplified <- st_simplify(typ_gwh_pot, preserveTopology = T, dTolerance=250)
+#ch_installed_pot_simplified <- st_simplify(ch_gwh_pot, preserveTopology = T, dTolerance=250)
+
+# simplifying geometry (rmapshaper)
+muns_installed_pot_simplified <- ms_simplify(muns_gwh_pot, keep_shapes = F, keep=0.001)
+cantons_installed_pot_simplified <- ms_simplify(cantons_gwh_pot, keep_shapes = F, keep=0.01)
+typ_installed_pot_simplified <- ms_simplify(typ_gwh_pot, keep_shapes = F, keep=0.01)
+ch_installed_pot_simplified <- ms_simplify(ch_gwh_pot, keep_shapes = F, keep=0.01)
 ```
 
 ```{r}
