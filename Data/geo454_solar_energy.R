@@ -32,7 +32,7 @@ labels_cantons <- sprintf(
   "<strong>Canton %s</strong>
   <br/>Population: %d
   <br/>Installed power: %g kW
-  <br/>Installed energy: %g GWh
+  <br/>Current energy output: %g GWh
   <br/>Potential: %g GWh
   <br/>Potential exhausted: %g%%",
   cantons$name, 
@@ -263,7 +263,7 @@ server <- function(input, output, session) {
             "<strong>%s</strong>
             <br/>Population: %d
             <br/>Installed power: %g kW
-            <br/>Installed energy: %g GWh
+            <br/>Current energy output: %g GWh
             <br/>Potential: %g GWh
             <br/>Potential exhausted: %g%%",
             muns_shown_geom$name, 
