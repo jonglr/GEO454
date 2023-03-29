@@ -32,7 +32,7 @@ labels_cantons <- sprintf(
   "<strong>Canton %s</strong>
   <br/>Population: %d
   <br/>Installed power: %g kW
-  <br/>Current energy output: %g GWh
+  <br/>Installed energy: %g GWh
   <br/>Potential: %g GWh
   <br/>Potential exhausted: %g%%",
   cantons$name, 
@@ -58,7 +58,7 @@ ui <- fluidPage(
       ),
       actionButton(
         inputId = "reset",
-        label = "Clear selection"
+        label = "Reset selection"
       ),
       # choosing municipality type to be rendered in the plot
       selectInput(
@@ -152,7 +152,7 @@ server <- function(input, output, session) {
                 values = cantons$gwh_tot/cantons$p_rf_fac, 
                 opacity = 1, 
                 title="Exhaustion of PV potential", 
-                position="bottomright",
+                position="topright",
                 labFormat = labelFormat(
                   suffix = " %",
                   transform = transf_fracs_to_percs
@@ -194,15 +194,15 @@ server <- function(input, output, session) {
               
           if (selection_in_progress) {
             # add to existing
-            graph_muns <<- rbind(graph_muns, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
+            to_vis_graph <<- rbind(to_vis_graph, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
             to_vis_map <<- rbind(to_vis_map, selected_df)
           } else {
               # replace
-            graph_muns <<- data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential)
+            to_vis_graph <<- rbind(graph_ch, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
             to_vis_map <<- selected_df
           }
     
-          # display the clicked municipalities on the map in red
+          # display the clicked layers on the map in red
           leafletProxy("map") %>%
             clearGroup("current_selection") %>%
             # add currently selected layer as red polygon as indication
@@ -215,8 +215,6 @@ server <- function(input, output, session) {
                                                             color="black",
                                                             bringToFront = T))
                 
-          to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
-          
           # update the plot
           output$plot <- renderPlot({
             ggplot(to_vis_graph) +
@@ -263,7 +261,7 @@ server <- function(input, output, session) {
             "<strong>%s</strong>
             <br/>Population: %d
             <br/>Installed power: %g kW
-            <br/>Current energy output: %g GWh
+            <br/>Installed energy: %g GWh
             <br/>Potential: %g GWh
             <br/>Potential exhausted: %g%%",
             muns_shown_geom$name, 
@@ -327,106 +325,53 @@ server <- function(input, output, session) {
   
   # Functionality of the municipality type button
   observe({
-    if (length(input$municipality_type)) {
+    if (length(input$municipality_type != 0)) {
+      # figure out if an element has been remove
       
-      # extracting selected types
-      viz <- filter(typ, name %in% input$municipality_type) %>%
-        select(starts_with("gwh") &! ends_with("tot")) %>%
-        st_drop_geometry()
-      
-      potentials <- filter(typ, name %in% input$municipality_type) %>% 
-        st_drop_geometry() %>%
-        pull(p_rf_fac)
-      
-      # pivoting the dataframe
-      installed <- c()
-      potential <- c()
-      name <- c()
-      
+      # else:
+      # check which municipality_types are not in to_vis_graph already
+      newly_selected_typ <- 0 
+        
       for (i in 1:length(input$municipality_type)) {
-        potential <- append(potential, rep(potentials[i], length(years)))
-        installed <- append(installed, cumsum(c(viz[i,])))
-        names(installed) <- c()
-        
-        name <- append(name, rep(input$municipality_type[i], length(years)))
+        if (!(input$municipality_type[i] %in% to_vis_graph$name)) {
+          newly_selected_typ <- input$municipality_type[i]
+        }
       }
       
-      graph_typ <<- data.frame(years = years, 
-                               installed = installed, 
-                               name = name, 
-                               potential = potential)
+      if (newly_selected_typ == 0){
+        # check which municipality_types have been removed from the selection (are in vis_graph but not in municipality_type)
+        # remove these from vis_graph (filter != name)
+        removed_typ <- 0
+        
+        displayed_types <- intersect(unique(to_vis_graph$name), typ %>% pull(name))
+        
+        for (i in 1:length(displayed_types)) {
+          if (!(displayed_types[i] %in% input$municipality_type)) {
+            removed_typ <- displayed_types[i]
+          }
+        }
+        
+        to_vis_graph <<- to_vis_graph %>% filter(name != removed_typ)
+      } else {
       
-      to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
-      
-      # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({
-        ggplot(to_vis_graph) +
-          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
-          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
-          scale_y_continuous(labels= percent) +
-          theme_classic()
-      })
-    } else {
-      graph_typ <<- data.frame()
-      
-      to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
-      
-      # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({
-        ggplot(to_vis_graph) +
-          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
-          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
-          scale_y_continuous(labels= percent) +
-          theme_classic()
-      })
-    }
-  })
-  
-  # Functionality of the canton button
-  observe({
-    if (length(input$canton)) {
-      
-      # extracting selected types
-      viz <- filter(cantons, name %in% input$canton) %>%
-        select(starts_with("gwh") &! ends_with("tot")) %>%
-        st_drop_geometry()
-      
-      potentials <- filter(cantons, name %in% input$canton) %>% 
-        st_drop_geometry() %>%
-        pull(p_rf_fac)
-      
-      # pivoting the dataframe
-      installed <- c()
-      potential <- c()
-      name <- c()
-      
-      for (i in 1:length(input$canton)) {
-        potential <- append(potential, rep(potentials[i], length(years)))
-        installed <- append(installed, cumsum(c(viz[i,])))
+        viz <- filter(typ, name == newly_selected_typ) %>%
+          select(starts_with("gwh") &! ends_with("tot")) %>%
+          st_drop_geometry()
+        
+        potential <- filter(typ, name == newly_selected_typ) %>% 
+          st_drop_geometry() %>%
+          pull(p_rf_fac)
+        
+        # pivoting the dataframe
+        installed <- cumsum(c(viz[1,]))
         names(installed) <- c()
         
-        name <- append(name, rep(paste("Canton", input$canton[i]), length(years)))
+        # add to existing
+        to_vis_graph <<- rbind(to_vis_graph, data.frame(years = years, 
+                                                        installed = installed, 
+                                                        name = newly_selected_typ, 
+                                                        potential = potential))
       }
-      
-      graph_cantons <<- data.frame(years = years, 
-                                  installed = installed, 
-                                  name = name, 
-                                  potential = potential)
-      
-      to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
-      
-      # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({
-        ggplot(to_vis_graph) +
-          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
-          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
-          scale_y_continuous(labels= percent) +
-          theme_classic()
-      })
-    } else {
-      graph_cantons <<- data.frame()
-      
-      to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
       output$plot <- renderPlot({
@@ -448,28 +393,6 @@ server <- function(input, output, session) {
         clearGroup("current_selection")
       # reset the map
       to_vis_map <<- data.frame()
-      graph_muns <<- data.frame()
-      graph_cantons <<- data.frame()
-      graph_typ <<- data.frame()
-      
-      to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
-      
-      # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({
-        ggplot(to_vis_graph) +
-          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
-          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
-          scale_y_continuous(labels= percent) +
-          theme_classic()
-      })
-      
-      # reset municipality and canton buttons
-      updateSelectInput(session,
-                        inputId = "municipality_type",
-                        selected = character(0))  
-      updateSelectInput(session,
-                        inputId = "canton",
-                        selected = character(0))  
     }
   })
   
@@ -505,7 +428,7 @@ server <- function(input, output, session) {
                   values = cantons$gwh_tot/cantons$p_rf_fac, 
                   opacity = 1, 
                   title="Exhaustion of PV potential", 
-                  position="bottomright",
+                  position="topright",
                   labFormat = labelFormat(
                     suffix = " %",
                     transform = transf_fracs_to_percs
