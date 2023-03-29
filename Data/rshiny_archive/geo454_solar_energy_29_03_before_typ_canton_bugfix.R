@@ -18,8 +18,7 @@ returnPlot <- function(dataframe) {
     geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
     labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent) +
-    theme_classic() +
-    theme(legend.position = "bottom")
+    theme_classic()
   
   return(returnedPlot)
 }
@@ -81,10 +80,9 @@ ui <- fluidPage(
         label = "Choose cantons",
         choices = as.character(cantons$name),
         multiple = T
-      ),
-      plotOutput("plot")
+      )
     ),
-    mainPanel(leafletOutput("map"))
+    mainPanel(leafletOutput("map"), plotOutput("plot"))
   )
 )
 
@@ -314,23 +312,24 @@ server <- function(input, output, session) {
   # Functionality of the municipality type button
   observe({
     if (length(input$municipality_type)) {
+      
+      # extracting selected types
+      viz <- filter(typ, name %in% input$municipality_type) %>%
+        select(starts_with("gwh") &! ends_with("tot")) %>%
+        st_drop_geometry()
+      
+      potentials <- filter(typ, name %in% input$municipality_type) %>% 
+        st_drop_geometry() %>%
+        pull(p_rf_fac)
+      
       # pivoting the dataframe
       installed <- c()
       potential <- c()
       name <- c()
       
       for (i in 1:length(input$municipality_type)) {
-        # extracting selected types
-        viz <- filter(typ, name == input$municipality_type[i]) %>%
-          select(starts_with("gwh") &! ends_with("tot")) %>%
-          st_drop_geometry()
-        
-        potentials <- filter(typ, name == input$municipality_type[i]) %>% 
-          st_drop_geometry() %>%
-          pull(p_rf_fac)
-        
-        potential <- append(potential, rep(potentials, length(years)))
-        installed <- append(installed, cumsum(c(viz[1,])))
+        potential <- append(potential, rep(potentials[i], length(years)))
+        installed <- append(installed, cumsum(c(viz[i,])))
         names(installed) <- c()
         
         name <- append(name, rep(input$municipality_type[i], length(years)))
@@ -358,23 +357,24 @@ server <- function(input, output, session) {
   # Functionality of the canton button
   observe({
     if (length(input$canton)) {
+      
+      # extracting selected types
+      viz <- filter(cantons, name %in% input$canton) %>%
+        select(starts_with("gwh") &! ends_with("tot")) %>%
+        st_drop_geometry()
+      
+      potentials <- filter(cantons, name %in% input$canton) %>% 
+        st_drop_geometry() %>%
+        pull(p_rf_fac)
+      
       # pivoting the dataframe
       installed <- c()
       potential <- c()
       name <- c()
       
       for (i in 1:length(input$canton)) {
-        # extracting selected cantons
-        viz <- filter(cantons, name == input$canton[i]) %>%
-          select(starts_with("gwh") &! ends_with("tot")) %>%
-          st_drop_geometry()
-        
-        potentials <- filter(cantons, name == input$canton[i]) %>% 
-          st_drop_geometry() %>%
-          pull(p_rf_fac)
-        
-        potential <- append(potential, rep(potentials, length(years)))
-        installed <- append(installed, cumsum(c(viz[1,])))
+        potential <- append(potential, rep(potentials[i], length(years)))
+        installed <- append(installed, cumsum(c(viz[i,])))
         names(installed) <- c()
         
         name <- append(name, rep(paste("Canton", input$canton[i]), length(years)))

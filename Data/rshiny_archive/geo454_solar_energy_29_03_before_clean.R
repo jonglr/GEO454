@@ -12,18 +12,6 @@ transf_fracs_to_percs <- function(n) {
   return(n * 100)
 }
 
-# Function that renders the plot
-returnPlot <- function(dataframe) {
-  returnedPlot <- ggplot(dataframe) +
-    geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
-    labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
-    scale_y_continuous(labels= percent) +
-    theme_classic() +
-    theme(legend.position = "bottom")
-  
-  return(returnedPlot)
-}
-
 # Reading data and transforming to WGS84
 muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
 cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
@@ -65,6 +53,10 @@ ui <- fluidPage(
         label = "Back"
       ),
       actionButton(
+        inputId = "select_multiple",
+        label = "Start selecting"
+      ),
+      actionButton(
         inputId = "reset",
         label = "Clear selection"
       ),
@@ -80,11 +72,11 @@ ui <- fluidPage(
         inputId = "canton",
         label = "Choose cantons",
         choices = as.character(cantons$name),
+        selected = "None",
         multiple = T
-      ),
-      plotOutput("plot")
+      )
     ),
-    mainPanel(leafletOutput("map"))
+    mainPanel(leafletOutput("map"), plotOutput("plot"))
   )
 )
 
@@ -96,6 +88,9 @@ server <- function(input, output, session) {
   muns_shown <<- F
   # variable storing the municipalities that are currently shown
   muns_shown_geom <<- data.frame()
+  
+  # variable indicating whether the selection is currently in progress
+  selection_in_progress <- F
   
   # Rendering the initial plot that is displayed when the application is launched (Switzerland)
   viz <- ch %>%
@@ -111,16 +106,23 @@ server <- function(input, output, session) {
   graph_cantons <<- data.frame()
   graph_typ <<- data.frame()
 
-  output$plot <- renderPlot({returnPlot(graph_ch)})
+  output$plot <- renderPlot({
+    ggplot(graph_ch) +
+      geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+      labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+      scale_y_continuous(labels= percent) +
+      theme_classic()
+  })
   
   # dataframes for multiple selection
+  #to_vis_graph <<- graph_ch
   to_vis_map <<- data.frame()
   
   # Other good options for basemap
   # - Esri.WorldShadedRelief --> No borders, just topography and lakes 
   # - CartoDB.PositronNoLabels
   output$map <- renderLeaflet({
-    leaflet(options=leafletOptions(zoomControl = T,
+    leaflet(options=leafletOptions(zoomControl = F,
                                    zoomSnap = 0.1,
                                    zoomDelta = 1,
                                    minZoom = 7.5)) %>%
@@ -168,7 +170,7 @@ server <- function(input, output, session) {
   observe({
     if (!is.null(input$map_click)) {
       point <- data.frame(x = input$map_click$lng, 
-                          y = input$map_click$lat)
+                            y = input$map_click$lat)
         
       if (muns_shown) {
         # generating point object
@@ -189,10 +191,16 @@ server <- function(input, output, session) {
           potential <- st_drop_geometry(selected_df)[1, "p_rf_fac"]
           installed <- cumsum(c(viz[1,]))
           names(installed) <- c()
-
-          # add to existing
-          graph_muns <<- rbind(graph_muns, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
-          to_vis_map <<- rbind(to_vis_map, selected_df)
+              
+          if (selection_in_progress) {
+            # add to existing
+            graph_muns <<- rbind(graph_muns, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
+            to_vis_map <<- rbind(to_vis_map, selected_df)
+          } else {
+              # replace
+            graph_muns <<- data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential)
+            to_vis_map <<- selected_df
+          }
     
           # display the clicked municipalities on the map in red
           leafletProxy("map") %>%
@@ -210,7 +218,13 @@ server <- function(input, output, session) {
           to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
           
           # update the plot
-          output$plot <- renderPlot({returnPlot(to_vis_graph)})
+          output$plot <- renderPlot({
+            ggplot(to_vis_graph) +
+              geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+              labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+              scale_y_continuous(labels= percent) +
+              theme_classic()
+            })
         }
       }
     }
@@ -314,23 +328,24 @@ server <- function(input, output, session) {
   # Functionality of the municipality type button
   observe({
     if (length(input$municipality_type)) {
+      
+      # extracting selected types
+      viz <- filter(typ, name %in% input$municipality_type) %>%
+        select(starts_with("gwh") &! ends_with("tot")) %>%
+        st_drop_geometry()
+      
+      potentials <- filter(typ, name %in% input$municipality_type) %>% 
+        st_drop_geometry() %>%
+        pull(p_rf_fac)
+      
       # pivoting the dataframe
       installed <- c()
       potential <- c()
       name <- c()
       
       for (i in 1:length(input$municipality_type)) {
-        # extracting selected types
-        viz <- filter(typ, name == input$municipality_type[i]) %>%
-          select(starts_with("gwh") &! ends_with("tot")) %>%
-          st_drop_geometry()
-        
-        potentials <- filter(typ, name == input$municipality_type[i]) %>% 
-          st_drop_geometry() %>%
-          pull(p_rf_fac)
-        
-        potential <- append(potential, rep(potentials, length(years)))
-        installed <- append(installed, cumsum(c(viz[1,])))
+        potential <- append(potential, rep(potentials[i], length(years)))
+        installed <- append(installed, cumsum(c(viz[i,])))
         names(installed) <- c()
         
         name <- append(name, rep(input$municipality_type[i], length(years)))
@@ -344,37 +359,50 @@ server <- function(input, output, session) {
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({returnPlot(to_vis_graph)})
+      output$plot <- renderPlot({
+        ggplot(to_vis_graph) +
+          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+          scale_y_continuous(labels= percent) +
+          theme_classic()
+      })
     } else {
       graph_typ <<- data.frame()
       
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({returnPlot(to_vis_graph)})
+      output$plot <- renderPlot({
+        ggplot(to_vis_graph) +
+          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+          scale_y_continuous(labels= percent) +
+          theme_classic()
+      })
     }
   })
   
   # Functionality of the canton button
   observe({
     if (length(input$canton)) {
+      
+      # extracting selected types
+      viz <- filter(cantons, name %in% input$canton) %>%
+        select(starts_with("gwh") &! ends_with("tot")) %>%
+        st_drop_geometry()
+      
+      potentials <- filter(cantons, name %in% input$canton) %>% 
+        st_drop_geometry() %>%
+        pull(p_rf_fac)
+      
       # pivoting the dataframe
       installed <- c()
       potential <- c()
       name <- c()
       
       for (i in 1:length(input$canton)) {
-        # extracting selected cantons
-        viz <- filter(cantons, name == input$canton[i]) %>%
-          select(starts_with("gwh") &! ends_with("tot")) %>%
-          st_drop_geometry()
-        
-        potentials <- filter(cantons, name == input$canton[i]) %>% 
-          st_drop_geometry() %>%
-          pull(p_rf_fac)
-        
-        potential <- append(potential, rep(potentials, length(years)))
-        installed <- append(installed, cumsum(c(viz[1,])))
+        potential <- append(potential, rep(potentials[i], length(years)))
+        installed <- append(installed, cumsum(c(viz[i,])))
         names(installed) <- c()
         
         name <- append(name, rep(paste("Canton", input$canton[i]), length(years)))
@@ -388,14 +416,26 @@ server <- function(input, output, session) {
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({returnPlot(to_vis_graph)})
+      output$plot <- renderPlot({
+        ggplot(to_vis_graph) +
+          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+          scale_y_continuous(labels= percent) +
+          theme_classic()
+      })
     } else {
       graph_cantons <<- data.frame()
       
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({returnPlot(to_vis_graph)})
+      output$plot <- renderPlot({
+        ggplot(to_vis_graph) +
+          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+          scale_y_continuous(labels= percent) +
+          theme_classic()
+      })
     }
   })
   
@@ -415,7 +455,13 @@ server <- function(input, output, session) {
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
-      output$plot <- renderPlot({returnPlot(to_vis_graph)})
+      output$plot <- renderPlot({
+        ggplot(to_vis_graph) +
+          geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
+          labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+          scale_y_continuous(labels= percent) +
+          theme_classic()
+      })
       
       # reset municipality and canton buttons
       updateSelectInput(session,
@@ -468,6 +514,23 @@ server <- function(input, output, session) {
       # reset graph to display Switzerland
       muns_shown <<- F
       cur_canton <<- 0
+    }
+  })
+  
+  # Logic of the multiple selection button
+  observe({
+    if (input$select_multiple){
+      if (!selection_in_progress){
+        updateActionButton(session,
+                           inputId = "select_multiple",
+                           label = "Stop selecting")
+        selection_in_progress <<- T
+      } else {
+        updateActionButton(session,
+                           inputId = "select_multiple",
+                           label = "Start selecting")
+        selection_in_progress <<- F
+      }
     }
   })
 }
