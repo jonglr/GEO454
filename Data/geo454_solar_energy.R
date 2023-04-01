@@ -7,6 +7,7 @@ library(sf)
 library(htmltools)
 library(htmlwidgets)
 library(leaflet.extras)
+library(shinythemes)
 
 transf_fracs_to_percs <- function(n) {
   return(n * 100)
@@ -29,8 +30,11 @@ muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp")
 cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
 typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
 ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
+muns_point <- st_transform(st_read("processed_data/point_data/municipalities_point.shp"), crs=4326)
+cantons_point <-  st_transform(st_read("processed_data/point_data/cantons_point.shp"), crs=4326)
 
 zoom_lvls <- read.csv("processed_data/zoom_levels.csv")
+energy_perspectives <- read.csv("processed_data/energieperspektive_2050.csv")
 
 # bins and color palette for the cantons
 bins_cantons <- c(0, 0.03, 0.04, 0.05, 0.06, 0.07)
@@ -57,34 +61,45 @@ labels_cantons <- sprintf(
 
 years <- seq(2004, 2022)
 
-ui <- fluidPage(
-  sidebarLayout(
-    sidebarPanel(
-      actionButton(
-        inputId = "back",
-        label = "Back"
-      ),
-      actionButton(
-        inputId = "reset",
-        label = "Clear selection"
-      ),
-      # choosing municipality type to be rendered in the plot
-      selectInput(
-        inputId = "municipality_type",
-        label = "Choose municipality types",
-        choices = as.character(typ$name),
-        multiple = T
-      ),
-      # choosing municipality type to be rendered in the plot
-      selectInput(
-        inputId = "canton",
-        label = "Choose cantons",
-        choices = as.character(cantons$name),
-        multiple = T
-      ),
-      plotOutput("plot")
+ui <- fluidPage(theme = shinytheme("sandstone"),
+  fluidRow(
+    column(2,
+           #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
+           p(),
+           actionButton(
+             inputId = "reset",
+             label = "Clear selection"
+           ),
+           p(),
+           div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
+           # choosing municipality type to be rendered in the plot
+           selectInput(
+             inputId = "municipality_type",
+             label = "Municipality types",
+             choices = as.character(typ$name),
+             multiple = T
+           ),
+           # choosing municipality type to be rendered in the plot
+           selectInput(
+             inputId = "canton",
+             label = "Cantons",
+             choices = as.character(cantons$name),
+             multiple = T
+           ),
+           radioButtons(inputId="add_info", label="Socioeconomic variable",
+                        choices = c("None" = "def", 
+                                    "Political orientation" = "pol", 
+                                    "Property ownership" = "prop"), selected = "def")
     ),
-    mainPanel(leafletOutput("map"))
+    column(10, leafletOutput("map"))
+  ),
+  fluidRow(
+    column(6,plotOutput("plot")),
+    # conditionalPanel with contents depending on the radio button
+    column(6,
+           conditionalPanel("input.add_info == 'def'", "Default"),
+           conditionalPanel("input.add_info == 'pol'", "political orientation"), #plotOutput("pol_or_plot")
+           conditionalPanel("input.add_info == 'prop'", "Property information")) #plotOutput("prop_info_plot")
   )
 )
 
@@ -97,6 +112,9 @@ server <- function(input, output, session) {
   # variable storing the municipalities that are currently shown
   muns_shown_geom <<- data.frame()
   
+  # variable that records whether the back button has been clicked
+  back_button_clicked <<- F
+  
   # Rendering the initial plot that is displayed when the application is launched (Switzerland)
   viz <- ch %>%
     select(starts_with("gwh") &! ends_with("tot")) %>%
@@ -105,7 +123,9 @@ server <- function(input, output, session) {
   potential <- st_drop_geometry(ch)[1, "p_rf_fac"]
   installed <- cumsum(c(viz[1,]))
   names(installed) <- c()
+  
   graph_ch <<- data.frame(years = years, installed = installed, name="Switzerland", potential=potential)
+  graph_ch <<- rbind(graph_ch, energy_perspectives)
   # dataframe storing the currently selected municipalities, cantons and municipality types
   graph_muns <<- data.frame()
   graph_cantons <<- data.frame()
@@ -116,53 +136,57 @@ server <- function(input, output, session) {
   # dataframes for multiple selection
   to_vis_map <<- data.frame()
   
-  # Other good options for basemap
-  # - Esri.WorldShadedRelief --> No borders, just topography and lakes 
-  # - CartoDB.PositronNoLabels
-  output$map <- renderLeaflet({
-    leaflet(options=leafletOptions(zoomControl = T,
-                                   zoomSnap = 0.1,
-                                   zoomDelta = 1,
-                                   minZoom = 7.5)) %>%
-      #addProviderTiles(providers$CartoDB.PositronNoLabels,
-      #                 options = providerTileOptions(noWrap = TRUE)
-      #) %>%
-      addPolygons(data=cantons, 
-                  group = "base_cantons",
-                  weight = 2,
-                  opacity = 1,
-                  color = "white",
-                  dashArray = "3",
-                  fillColor = ~pal_cantons(cantons$gwh_tot/cantons$p_rf_fac),
-                  fillOpacity=1,
-                  highlightOptions = highlightOptions(
+  renderBaseCantons <- function(){
+    # Other good options for basemap
+    # - Esri.WorldShadedRelief --> No borders, just topography and lakes 
+    # - CartoDB.PositronNoLabels
+    return (renderLeaflet({
+      leaflet(options=leafletOptions(zoomControl = T,
+                                     zoomSnap = 0.1,
+                                     zoomDelta = 1,
+                                     minZoom = 7.5)) %>%
+        #addProviderTiles(providers$CartoDB.PositronNoLabels,
+        #                 options = providerTileOptions(noWrap = TRUE)
+        #) %>%
+        addPolygons(data=cantons, 
+                    group = "base_cantons",
                     weight = 2,
-                    color = "black",
-                    dashArray = "",
-                    fillOpacity = 0.7,
-                    bringToFront = T
-                  ),
-                  label=labels_cantons,
-                  labelOptions = labelOptions(direction = "auto")) %>%
-      setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
-      setMaxBounds(lng1=5.861533, lat1=45.72593, lng2=10.60032, lat2=47.85311) %>%
-      addLegend(pal = pal_cantons, 
-                values = cantons$gwh_tot/cantons$p_rf_fac, 
-                opacity = 1, 
-                title="Exhaustion of PV potential", 
-                position="bottomright",
-                labFormat = labelFormat(
-                  suffix = " %",
-                  transform = transf_fracs_to_percs
-                )) %>%
-      addSearchOSM(options = searchOptions(collapsed = T, 
-                                           autoCollapse=T, 
-                                           hideMarkerOnCollapse = T, 
-                                           tooltipLimit = 5,
-                                           zoom=11,
-                                           firstTipSubmit = T)) %>%
-      onRender("function(el, x) {$(el).css('background-color', 'white');}")
-  })
+                    opacity = 1,
+                    color = "white",
+                    dashArray = "3",
+                    fillColor = ~pal_cantons(cantons$gwh_tot/cantons$p_rf_fac),
+                    fillOpacity=1,
+                    highlightOptions = highlightOptions(
+                      weight = 2,
+                      color = "black",
+                      dashArray = "",
+                      fillOpacity = 0.7,
+                      bringToFront = T
+                    ),
+                    label=labels_cantons,
+                    labelOptions = labelOptions(direction = "auto")) %>%
+        setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
+        setMaxBounds(lng1=5.861533, lat1=45.72593, lng2=10.60032, lat2=47.85311) %>%
+        addLegend(pal = pal_cantons, 
+                  values = cantons$gwh_tot/cantons$p_rf_fac, 
+                  opacity = 1, 
+                  title="Exhaustion of PV potential", 
+                  position="bottomright",
+                  labFormat = labelFormat(
+                    suffix = " %",
+                    transform = transf_fracs_to_percs
+                  )) %>%
+        addSearchOSM(options = searchOptions(collapsed = T, 
+                                             autoCollapse=T, 
+                                             hideMarkerOnCollapse = T, 
+                                             tooltipLimit = 5,
+                                             zoom=11,
+                                             firstTipSubmit = T)) %>%
+        onRender("function(el, x) {$(el).css('background-color', 'white');}")
+    }))
+  }
+  
+  output$map <- renderBaseCantons()
   
   # Figuring out where the user clicks and updating the plot accordingly
   observe({
@@ -219,12 +243,18 @@ server <- function(input, output, session) {
   # observer that zooms to the clicked canton and displays all the municipalities in the chosen canton
   observe({
     if (!is.null(input$map_click)) {
+
       point <- data.frame(x = input$map_click$lng, 
                           y = input$map_click$lat)
 
       # generating point object
-      click <- st_as_sf(point, coords = c("x", "y"), crs=4326, agr="constant")
-        
+      if (!(back_button_clicked)) {
+        click <- st_as_sf(point, coords = c("x", "y"), crs=4326, agr="constant")
+      }  else {
+        # set click to (0, 0) if back button has been clicked just before
+        click <- st_as_sf(data.frame(x = 0, y = 0), coords=c("x", "y"), crs=4326, agr="constant")
+      }
+      
       within_ch <- any(st_intersects(click, cantons, sparse=F))
       # check whether click is within Switzerland
       if (within_ch) {
@@ -305,9 +335,11 @@ server <- function(input, output, session) {
                           labFormat = labelFormat(
                             suffix = " %",
                             transform = transf_fracs_to_percs
-                        ))
+                        )) %>%
+            addControl(actionButton(inputId = "back", label="", icon = icon("house"), width="40px"))
         }
       }
+      back_button_clicked <<- F
     }  
   })
   
@@ -427,49 +459,72 @@ server <- function(input, output, session) {
     }
   })
   
-  # Logic of the back button
-  observe({
-    if (input$back){
-      # reset graph to Switzerland
-      leafletProxy("map") %>%
-        # remove currently selected municipalities
-        clearGroup("current_municipalities") %>%
-        # remove legend of municipalities
-        clearControls() %>%
-        addPolygons(data=cantons, 
-                    group = "base_cantons",
+  observeEvent(input$back, {
+    back_button_clicked <<- T
+
+    # reset graph to Switzerland
+    leafletProxy("map") %>%
+      # remove currently selected municipalities
+      clearGroup("current_municipalities") %>%
+      # remove legend of municipalities
+      clearControls() %>%
+      addPolygons(data=cantons, 
+                  group = "base_cantons",
+                  weight = 2,
+                  opacity = 1,
+                  color = "white",
+                  dashArray = "3",
+                  fillColor = ~pal_cantons(cantons$gwh_tot/cantons$p_rf_fac),
+                  fillOpacity=1,
+                  highlightOptions = highlightOptions(
                     weight = 2,
-                    opacity = 1,
-                    color = "white",
-                    dashArray = "3",
-                    fillColor = ~pal_cantons(cantons$gwh_tot/cantons$p_rf_fac),
-                    fillOpacity=1,
-                    highlightOptions = highlightOptions(
-                      weight = 2,
-                      color = "black",
-                      dashArray = "",
-                      fillOpacity = 0.7,
-                      bringToFront = T
-                    ), 
-                    label=labels_cantons,
-                    labelOptions = labelOptions(direction = "auto")) %>%
-        # reset view to show all cantons
-        setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
-        addLegend(pal = pal_cantons, 
-                  values = cantons$gwh_tot/cantons$p_rf_fac, 
-                  opacity = 1, 
-                  title="Exhaustion of PV potential", 
-                  position="bottomright",
-                  labFormat = labelFormat(
-                    suffix = " %",
-                    transform = transf_fracs_to_percs
-                  ))
-      
-      # reset graph to display Switzerland
-      muns_shown <<- F
-      cur_canton <<- 0
-    }
+                    color = "black",
+                    dashArray = "",
+                    fillOpacity = 0.7,
+                    bringToFront = T
+                  ), 
+                  label=labels_cantons,
+                  labelOptions = labelOptions(direction = "auto")) %>%
+      # reset view to show all cantons
+      setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
+      addLegend(pal = pal_cantons, 
+                values = cantons$gwh_tot/cantons$p_rf_fac, 
+                opacity = 1, 
+                title="Exhaustion of PV potential", 
+                position="bottomright",
+                labFormat = labelFormat(
+                  suffix = " %",
+                  transform = transf_fracs_to_percs
+                ))
+    
+    # reset graph to display Switzerland
+    muns_shown <<- F
+    cur_canton <<- 0
   })
+  
+  # observer that updates the UI if the radio button is clicked
+  #observeEvent(input$second_map, {
+  #  if (input$second_map == "pol") {
+      # remove previous UI item
+  #    removeUI(selector = '#map')
+      
+  #    new_row <- fluidRow(
+  #      column(6, leafletOutput("map")),
+  #      column(6, leafletOutput("pol_orient_map"))
+  #    )
+      
+      # insert UI before original map
+  #    insertUI(selector = "body", where = "beforeBegin", ui = new_row)
+      
+  #    output$map <- renderBaseCantons()
+      
+  #    output$pol_orient_map <- renderLeaflet({
+  #      leaflet() %>% addTiles()
+  #    })
+      
+  #    # sync both maps
+  #  }
+  #})
 }
 
 shinyApp(ui, server)

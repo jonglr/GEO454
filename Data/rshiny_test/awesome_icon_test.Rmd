@@ -1,0 +1,35 @@
+---
+title: "Untitled"
+author: "Joris Senn"
+date: "3/31/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(leaflet)
+library(leaflegend)
+library(sf)
+library(osmdata)
+```
+
+```{r}
+cantons_point <-  st_transform(st_read("../processed_data/point_data/cantons_point.shp"), crs=4326)
+#https://rstudio.github.io/leaflet/markers.html
+arrowIcon <- icons(
+  iconUrl = ifelse(cantons_point$pol_or < 0,
+                   "../icons/political_orientation/right.svg",
+                   "../icons/political_orientation/arrow.png"),
+  iconWidth=30, iconHeight = 35,
+  iconAnchorY = 11, iconAnchorX = -1
+)
+
+leaflet(cantons_point) %>%
+  addTiles() %>%
+  addMarkers(icon = arrowIcon) %>%
+  addAwesomeMarkers(icon = arrowIcon)
+```
+
