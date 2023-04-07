@@ -813,8 +813,8 @@ cantons_pol_point <- cantons_gwh_pot_pol %>%
   st_drop_geometry() %>%
   st_as_sf(., coords=c("gkode", "gkodn"), crs=2056)
 
-#st_write(muns_pol_point, "processed_data/point_data/municipalities_point.shp")
-#st_write(cantons_pol_point, "processed_data/point_data/cantons_point.shp")
+st_write(muns_pol_point, "processed_data/point_data/municipalities_point.shp", append=F)
+st_write(cantons_pol_point, "processed_data/point_data/cantons_point.shp", append=F)
 ```
 
 ```{r}
@@ -826,15 +826,23 @@ cantons_pol_point <- cantons_gwh_pot_pol %>%
 
 # simplifying geometry (rmapshaper)
 library(rmapshaper)
-muns_installed_pot_simplified <- ms_simplify(muns_gwh_pot_pol, keep_shapes = F, keep=0.001)
-cantons_installed_pot_simplified <- ms_simplify(cantons_gwh_pot_pol, keep_shapes = F, keep=0.01)
-typ_installed_pot_simplified <- ms_simplify(typ_gwh_pot, keep_shapes = F, keep=0.01)
-ch_installed_pot_simplified <- ms_simplify(ch_gwh_pot, keep_shapes = F, keep=0.01)
+muns_installed_pot_simplified <- ms_simplify(muns_gwh_pot_pol, keep_shapes = T, keep=0.005)
+cantons_installed_pot_simplified <- ms_simplify(cantons_gwh_pot_pol, keep_shapes = T, keep=0.01)
+typ_installed_pot_simplified <- ms_simplify(typ_gwh_pot, keep_shapes = T, keep=0.01)
+ch_installed_pot_simplified <- ms_simplify(ch_gwh_pot, keep_shapes = T, keep=0.01)
+```
+
+```{r}
+# Load and simplify lakes
+lakes_unsimp <- st_zm(read_sf("unprocessed_data/lakes/lakes.shp"))
+
+lakes_simp <- ms_simplify(lakes_unsimp, keep_shapes = T, keep=0.001)
 ```
 
 ```{r}
 ggplot() +
   geom_sf(data= muns_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.1) +
+  geom_sf(data=lakes_simp, mapping=aes(), fill="blue") +
   theme_void()
 ```
 
@@ -852,17 +860,12 @@ ggplot() +
 ```
 
 ```{r}
-# Saving processed data
-#write.csv(muns_installed_pot %>% st_drop_geometry(), "processed_data/municipalities.csv")
-#write.csv(cantons_installed_pot %>% st_drop_geometry(), "processed_data/cantons.csv")
-#write.csv(typ_installed_pot %>% st_drop_geometry(), "processed_data/typology.csv")
-#write.csv(ch_installed_pot %>% st_drop_geometry(), "processed_data/switzerland.csv")
-
 # Saving spatial data as shapefiles
-#st_write(muns_installed_pot_simplified, "processed_data/municipalities/municipalities.shp")
-#st_write(cantons_installed_pot_simplified, "processed_data/cantons/cantons.shp")
-#st_write(typ_installed_pot_simplified, "processed_data/typology/typology.shp")
-#st_write(ch_installed_pot_simplified, "processed_data/switzerland/switzerland.shp")
+st_write(muns_installed_pot_simplified, "processed_data/municipalities/municipalities.shp", append=F)
+st_write(cantons_installed_pot_simplified, "processed_data/cantons/cantons.shp", append=F)
+st_write(typ_installed_pot_simplified, "processed_data/typology/typology.shp", append=F)
+st_write(ch_installed_pot_simplified, "processed_data/switzerland/switzerland.shp", append=F)
+st_write(lakes_simp, "processed_data/lakes/lakes.shp", append=F)
 ```
 
 ```{r}

@@ -14,13 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(dplyr)
 library(ggplot2)
+library(scales)
 ```
 
 ```{r}
-muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
-cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
-typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
-ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
+muns <- st_transform(st_read("../processed_data/municipalities/municipalities.shp"), crs=4326)
+cantons <-  st_transform(st_read("../processed_data/cantons/cantons.shp"), crs=4326)
+typ <-  st_transform(st_read("../processed_data/typology/typology.shp"), crs=4326)
+ch <-  st_transform(st_read("../processed_data/switzerland/switzerland.shp"), crs=4326)
 ```
 
 ```{r}
@@ -47,5 +48,15 @@ to_visualize <- rbind(to_visualize, data.frame(years = years, gwh = cumsum(c(zh[
 
 ggplot() +
   geom_line(to_visualize, mapping=aes(x=years, y=gwh, col=name))
+```
+
+```{r}
+ggplot() +
+  geom_point(data=muns, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac), size=0.2) +
+  labs(title = "Political orientation vs exhaustion of PV potential at municipality level", x="Political orientation", y="Exhaustion [%]", col="") +
+  scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+  scale_x_continuous(breaks=c(-1, 0, 1),
+                     labels=c("left-leaning", "centrist", "right-leaning")) +
+  theme_classic()
 ```
 

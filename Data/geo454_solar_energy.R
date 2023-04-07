@@ -18,7 +18,22 @@ returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
     geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
     labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
-    scale_y_continuous(labels= percent) +
+    scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+    theme_classic() +
+    theme(legend.position = "bottom")
+  
+  return(returnedPlot)
+}
+
+# Function that renders the plot with the political orientation
+returnPolPlot <- function() {
+  returnedPlot <- ggplot() +
+    geom_point(data=muns, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac, col="Swiss municipalities"), size=0.2) +
+    labs(title = "Political orientation vs exhaustion of PV potential at municipality level", x="Political orientation", y="Exhaustion [%]", col="") +
+    scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+    scale_x_continuous(breaks=c(-1, 0, 1),
+                       labels=c("left-leaning", "centrist", "right-leaning")) +
+    scale_color_manual(values="black") +
     theme_classic() +
     theme(legend.position = "bottom")
   
@@ -32,6 +47,8 @@ typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
 ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
 muns_point <- st_transform(st_read("processed_data/point_data/municipalities_point.shp"), crs=4326)
 cantons_point <-  st_transform(st_read("processed_data/point_data/cantons_point.shp"), crs=4326)
+
+lakes <-  st_transform(st_read("processed_data/lakes/lakes.shp"), crs=4326)
 
 zoom_lvls <- read.csv("processed_data/zoom_levels.csv")
 energy_perspectives <- read.csv("processed_data/energieperspektive_2050.csv")
@@ -77,6 +94,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
              inputId = "municipality_type",
              label = "Municipality types",
              choices = as.character(typ$name),
+             selected = as.character(typ$name)[1],
              multiple = T
            ),
            # choosing municipality type to be rendered in the plot
@@ -84,10 +102,11 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
              inputId = "canton",
              label = "Cantons",
              choices = as.character(cantons$name),
+             selected = as.character(cantons$name)[1],
              multiple = T
            ),
-           radioButtons(inputId="add_info", label="Socioeconomic variable",
-                        choices = c("None" = "def", 
+           radioButtons(inputId="add_info", label="Additional information",
+                        choices = c("Solar energy in Switzerland" = "def", 
                                     "Political orientation" = "pol", 
                                     "Property ownership" = "prop"), selected = "def")
     ),
@@ -98,7 +117,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
     # conditionalPanel with contents depending on the radio button
     column(6,
            conditionalPanel("input.add_info == 'def'", "Default"),
-           conditionalPanel("input.add_info == 'pol'", "political orientation"), #plotOutput("pol_or_plot")
+           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), #plotOutput("pol_or_plot")
            conditionalPanel("input.add_info == 'prop'", "Property information")) #plotOutput("prop_info_plot")
   )
 )
@@ -133,6 +152,9 @@ server <- function(input, output, session) {
 
   output$plot <- renderPlot({returnPlot(graph_ch)})
   
+  # displaying the political orientation base plot
+  output$pol_or_plot <- renderPlot({returnPolPlot()})
+  
   # dataframes for multiple selection
   to_vis_map <<- data.frame()
   
@@ -161,7 +183,8 @@ server <- function(input, output, session) {
                       color = "black",
                       dashArray = "",
                       fillOpacity = 0.7,
-                      bringToFront = T
+                      bringToFront = T,
+                      sendToBack = T
                     ),
                     label=labels_cantons,
                     labelOptions = labelOptions(direction = "auto")) %>%
@@ -182,7 +205,19 @@ server <- function(input, output, session) {
                                              tooltipLimit = 5,
                                              zoom=11,
                                              firstTipSubmit = T)) %>%
-        onRender("function(el, x) {$(el).css('background-color', 'white');}")
+        onRender("function(el, x) {$(el).css('background-color', 'white');}") %>%
+        addPolygons(data=ch,
+                    group="ch",
+                    fill=F,
+                    weight=3,
+                    opacity=1,
+                    color="black",
+                    highlightOptions= highlightOptions(sendToBack=F)) %>%
+        addPolygons(data=lakes, 
+                    group = "lakes",
+                    fillColor="lightblue",
+                    stroke = F,
+                    fillOpacity=1)
     }))
   }
   
@@ -229,7 +264,8 @@ server <- function(input, output, session) {
                         group="current_selection",
                         highlightOptions = highlightOptions(weight=5,
                                                             color="black",
-                                                            bringToFront = T))
+                                                            bringToFront = T,
+                                                            sendToBack = F))
                 
           to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
           
@@ -298,6 +334,7 @@ server <- function(input, output, session) {
             # removing previously displayed municipalities and cantons
             clearGroup("current_municipalities") %>%
             clearGroup("base_cantons") %>%
+            clearGroup("lakes") %>%
             # Remove the legend for the cantons
             clearControls() %>%
             # re-render cantons with smaller opacity
@@ -323,7 +360,8 @@ server <- function(input, output, session) {
                           color = "black",
                           dashArray = "",
                           fillOpacity = 0.7,
-                          bringToFront = T
+                          bringToFront = T,
+                          sendToBack = F
                         ),
                         label=labels_muns,
                         labelOptions = labelOptions(direction = "auto")) %>%
@@ -336,7 +374,22 @@ server <- function(input, output, session) {
                             suffix = " %",
                             transform = transf_fracs_to_percs
                         )) %>%
-            addControl(actionButton(inputId = "back", label="", icon = icon("house"), width="40px"))
+            addControl(actionButton(inputId = "back", label="", icon = icon("house"), width="40px")) %>%
+            addPolygons(data=lakes, 
+                        group = "lakes",
+                        fillColor="lightblue",
+                        stroke = F,
+                        fillOpacity=1)
+          
+          # updating the political orientation plot
+          output$pol_or_plot <- renderPlot({
+            returnPolPlot() +
+              scale_color_manual(values=c("red", "black")) +
+              geom_point(data=muns_shown_geom, 
+                         mapping=aes(x=pol_or, 
+                                     y = gwh_tot / p_rf_fac, 
+                                     col=paste("Municipalities of the canton of", cantons$name[cur_canton])), size=2)
+          })
         }
       }
       back_button_clicked <<- F
@@ -466,6 +519,9 @@ server <- function(input, output, session) {
     leafletProxy("map") %>%
       # remove currently selected municipalities
       clearGroup("current_municipalities") %>%
+      clearGroup("lakes") %>%
+      clearGroup("ch") %>%
+      clearGroup("base_cantons") %>%
       # remove legend of municipalities
       clearControls() %>%
       addPolygons(data=cantons, 
@@ -481,7 +537,8 @@ server <- function(input, output, session) {
                     color = "black",
                     dashArray = "",
                     fillOpacity = 0.7,
-                    bringToFront = T
+                    bringToFront = T,
+                    sendToBack = T
                   ), 
                   label=labels_cantons,
                   labelOptions = labelOptions(direction = "auto")) %>%
@@ -495,36 +552,27 @@ server <- function(input, output, session) {
                 labFormat = labelFormat(
                   suffix = " %",
                   transform = transf_fracs_to_percs
-                ))
+                )) %>%
+      addPolygons(data=ch,
+                  group="ch",
+                  fill=F,
+                  weight=3,
+                  opacity=1,
+                  color="black",
+                  highlightOptions= highlightOptions(sendToBack=F)) %>%
+      addPolygons(data=lakes, 
+                  group = "lakes",
+                  fillColor="lightblue",
+                  stroke = F,
+                  fillOpacity=1)
     
     # reset graph to display Switzerland
     muns_shown <<- F
     cur_canton <<- 0
+    
+    # reset political orientation plot
+    output$pol_or_plot <- renderPlot({returnPolPlot()})
   })
-  
-  # observer that updates the UI if the radio button is clicked
-  #observeEvent(input$second_map, {
-  #  if (input$second_map == "pol") {
-      # remove previous UI item
-  #    removeUI(selector = '#map')
-      
-  #    new_row <- fluidRow(
-  #      column(6, leafletOutput("map")),
-  #      column(6, leafletOutput("pol_orient_map"))
-  #    )
-      
-      # insert UI before original map
-  #    insertUI(selector = "body", where = "beforeBegin", ui = new_row)
-      
-  #    output$map <- renderBaseCantons()
-      
-  #    output$pol_orient_map <- renderLeaflet({
-  #      leaflet() %>% addTiles()
-  #    })
-      
-  #    # sync both maps
-  #  }
-  #})
 }
 
 shinyApp(ui, server)
