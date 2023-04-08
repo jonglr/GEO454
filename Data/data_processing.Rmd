@@ -798,15 +798,75 @@ cantons_gwh_pot_pol <- inner_join(cantons_gwh_pot, cantons_pol, by=c("KANTONSNUM
 ```
 
 ```{r}
+# assigning categorical values to numerical political orientation
+muns_gwh_pot_pol_cat <- muns_gwh_pot_pol %>%
+  mutate(pol_or_cat = "very right-leaning") %>%
+  mutate(pol_or_cat = ifelse(pol_or < -0.5, "very left-leaning", 
+                             ifelse(pol_or < -0.25, "left-leaning",
+                                    ifelse(pol_or < 0.25, "centrist",
+                                           ifelse(pol_or < 0.5, "right-leaning", pol_or_cat)))))
+
+cantons_gwh_pot_pol_cat <- cantons_gwh_pot_pol %>%
+  mutate(pol_or_cat = "very right-leaning") %>%
+  mutate(pol_or_cat = ifelse(pol_or < -0.5, "very left-leaning", 
+                             ifelse(pol_or < -0.25, "left-leaning",
+                                    ifelse(pol_or < 0.25, "centrist",
+                                           ifelse(pol_or < 0.5, "right-leaning", pol_or_cat)))))
+```
+
+```{r}
+# Fraction of owned houses
+
+# Loading data from cities, districts and cantons
+own_cit <- read.csv("unprocessed_data/wohneigentumsquote/stadt.csv")
+own_dist <- read.csv("unprocessed_data/wohneigentumsquote/bezirk.csv")
+own_cant <- read.csv("unprocessed_data/wohneigentumsquote/kanton.csv")
+
+# additionally extracting Bezirksnummer
+muns_bez <- muns_unproc %>%
+  # removing municipalities in Liechtenstein
+  filter(BFS_NUMMER < 7000) %>%
+  dplyr::group_by(BFS_NUMMER) %>%
+  dplyr::summarize(name=max(NAME), knr = max(KANTONSNUM), beznr = max(BEZIRKSNUM), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
+```
+
+```{r}
+# joining the data 
+muns_bez_own_raw <- muns_bez %>%
+  left_join(own_cit, by=c("BFS_NUMMER" = "bfs_num")) %>%
+  left_join(own_dist, by=c("beznr" = "bez_num")) %>%
+  left_join(own_cant, by=c("knr" = "kanton_num")) %>%
+  select(BFS_NUMMER, name.x, wohneigentumsquote_stadt, wohneigentumsquote_bezirk, wohneigentumsquote_kanton) %>%
+  st_drop_geometry() %>%
+  # priority: city --> district --> canton
+  mutate(own_frac = ifelse(!is.na(wohneigentumsquote_stadt), wohneigentumsquote_stadt,
+                                     ifelse(!is.na(wohneigentumsquote_bezirk), wohneigentumsquote_bezirk,
+                                     wohneigentumsquote_kanton))) %>%
+  select(BFS_NUMMER, own_frac)
+
+cantons_own_raw <- cantons %>%
+  inner_join(own_cant, by=c("KANTONSNUM" = "kanton_num")) %>%
+  dplyr::rename(own_frac = wohneigentumsquote_kanton) %>%
+  st_drop_geometry() %>%
+  select(KANTONSNUM, own_frac)
+```
+
+```{r}
+# joining property information to rest of the data
+muns_gwh_pot_pol_cat_own <- inner_join(muns_gwh_pot_pol_cat, muns_bez_own_raw, by="BFS_NUMMER")
+cantons_gwh_pot_pol_cat_own <- inner_join(cantons_gwh_pot_pol_cat, cantons_own_raw, by="KANTONSNUM")
+```
+
+```{r}
 # Saving cantons and muns as point data
-muns_pol_point <- muns_gwh_pot_pol %>%
+muns_pol_point <- muns_gwh_pot_pol_cat_own %>%
   select(BFS_NUMMER, name, pol_or) %>%
   mutate(gkode = st_coordinates(st_point_on_surface(geometry))[,1],
          gkodn = st_coordinates(st_point_on_surface(geometry))[,2]) %>%
   st_drop_geometry() %>%
   st_as_sf(., coords=c("gkode", "gkodn"), crs=2056)
 
-cantons_pol_point <- cantons_gwh_pot_pol %>%
+cantons_pol_point <- cantons_gwh_pot_pol_cat_own %>%
   select(KANTONSNUM, name, pol_or) %>%
   mutate(gkode = st_coordinates(st_point_on_surface(geometry))[,1],
          gkodn = st_coordinates(st_point_on_surface(geometry))[,2]) %>%
@@ -826,8 +886,8 @@ st_write(cantons_pol_point, "processed_data/point_data/cantons_point.shp", appen
 
 # simplifying geometry (rmapshaper)
 library(rmapshaper)
-muns_installed_pot_simplified <- ms_simplify(muns_gwh_pot_pol, keep_shapes = T, keep=0.005)
-cantons_installed_pot_simplified <- ms_simplify(cantons_gwh_pot_pol, keep_shapes = T, keep=0.01)
+muns_installed_pot_simplified <- ms_simplify(muns_gwh_pot_pol_cat_own, keep_shapes = T, keep=0.005)
+cantons_installed_pot_simplified <- ms_simplify(cantons_gwh_pot_pol_cat_own, keep_shapes = T, keep=0.01)
 typ_installed_pot_simplified <- ms_simplify(typ_gwh_pot, keep_shapes = T, keep=0.01)
 ch_installed_pot_simplified <- ms_simplify(ch_gwh_pot, keep_shapes = T, keep=0.01)
 ```

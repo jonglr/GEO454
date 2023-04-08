@@ -13,7 +13,7 @@ transf_fracs_to_percs <- function(n) {
   return(n * 100)
 }
 
-# Function that renders the plot with the evolution of the potential
+# Function that renders the plot
 returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
     geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
@@ -312,9 +312,6 @@ server <- function(input, output, session) {
               
           # all municipalities of the currently selected canton
           muns_shown_geom <<- muns %>% filter(knr_x == canton_nr)
-          
-          # currently clicked canton
-          canton_shown_geom <- cantons %>% filter(KANTONSNUM == canton_nr)
             
           labels_muns <- sprintf(
             "<strong>%s</strong>
@@ -342,7 +339,6 @@ server <- function(input, output, session) {
             clearGroup("current_municipalities") %>%
             clearGroup("base_cantons") %>%
             clearGroup("lakes") %>%
-            clearGroup("current_canton") %>%
             # Remove the legend for the cantons
             clearControls() %>%
             # re-render cantons with smaller opacity
@@ -354,14 +350,6 @@ server <- function(input, output, session) {
                         dashArray = "3",
                         fillColor = ~pal_cantons(cantons$gwh_tot/cantons$p_rf_fac),
                         fillOpacity = 0.4) %>%
-            # render outline of currently clicked canton
-            addPolygons(data = canton_shown_geom,
-                        group = "current_canton",
-                        fill = F,
-                        weight=7,
-                        opacity = 1,
-                        color="black"
-                        ) %>%
             # re-render municipalities
             addPolygons(data=muns_shown_geom, 
                         group="current_municipalities", 
@@ -538,7 +526,6 @@ server <- function(input, output, session) {
       clearGroup("lakes") %>%
       clearGroup("ch") %>%
       clearGroup("base_cantons") %>%
-      clearGroup("current_canton") %>%
       # remove legend of municipalities
       clearControls() %>%
       addPolygons(data=cantons, 
