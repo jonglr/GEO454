@@ -8,10 +8,7 @@ library(htmltools)
 library(htmlwidgets)
 library(leaflet.extras)
 library(shinythemes)
-
-transf_fracs_to_percs <- function(n) {
-  return(n * 100)
-}
+library(RColorBrewer)
 
 # Function that renders the plot with the evolution of the potential
 returnPlot <- function(dataframe) {
@@ -20,7 +17,7 @@ returnPlot <- function(dataframe) {
     labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
   
   return(returnedPlot)
 }
@@ -35,7 +32,21 @@ returnPolPlot <- function() {
                        labels=c("left-leaning", "centrist", "right-leaning")) +
     scale_color_manual(values="black") +
     theme_classic() +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
+  
+  return(returnedPlot)
+}
+
+# Function that renders the plot with the home ownership rate
+returnHomePlot <- function() {
+  returnedPlot <- ggplot() +
+    geom_point(data=muns, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac, col="Swiss municipalities"), size=0.2) +
+    labs(title = "Home ownership rate vs exhaustion of PV potential at municipality level", x="Home ownership rate [%]", y="Exhaustion [%]", col="") +
+    scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+    scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+    scale_color_manual(values="black") +
+    theme_classic() +
+    theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
   
   return(returnedPlot)
 }
@@ -56,32 +67,55 @@ energy_perspectives <- read.csv("processed_data/energieperspektive_2050.csv")
 # bins and color palette for the cantons
 bins_cantons <- c(0, 0.03, 0.04, 0.05, 0.06, 0.07)
 pal_cantons <- colorBin("YlOrRd", domain = cantons$gwh_tot/cantons$p_rf_fac, bins=bins_cantons)
+pal_cantons_man <- brewer.pal(length(bins_cantons)-1, "YlOrRd")
+legend_labels_cantons = c(paste("<", bins_cantons[2] * 100, "%"), 
+                          paste("<", bins_cantons[3] * 100, "%"), 
+                          paste("<", bins_cantons[4] * 100, "%"), 
+                          paste("<", bins_cantons[5] * 100, "%"), 
+                          paste("<", bins_cantons[6] * 100, "%"))
 
 # bins and color palette for the municipalities
-bins_muns <- c(0, 0.025, 0.05, 0.1, 0.2, 0.4, 0.5)
+bins_muns <- c(0, 0.025, 0.05, 0.075, 0.1, 0.5)
 pal_muns <- colorBin("YlOrRd", domain = muns$gwh_tot/muns$p_rf_fac, bins=bins_muns)
+pal_muns_man <- brewer.pal(length(bins_muns)-1, "YlOrRd")
+legend_labels_muns = c(paste("<", bins_muns[2] * 100, "%"), 
+                       paste("<", bins_muns[3] * 100, "%"), 
+                       paste("<", bins_muns[4] * 100, "%"), 
+                       paste("<", bins_muns[5] * 100, "%"), 
+                       paste("<", bins_muns[6] * 100, "%"))
 
 labels_cantons <- sprintf(
   "<strong>Canton %s</strong>
   <br/>Population: %d
-  <br/>Installed power: %g kW
-  <br/>Current energy output: %g GWh
-  <br/>Potential: %g GWh
-  <br/>Potential exhausted: %g%%
-  <br/>Political orientation: %s",
+  <br/>Installed PV power: %g kW
+  <br/>Current PV energy output: %g GWh
+  <br/>PV Potential: %g GWh
+  <br/>PV Potential exhausted: %g%%
+  <br/>Political orientation: %s
+  <br/>Home ownership rate: %g%%",
   cantons$name, 
   round(cantons$pop,0),
   round(cantons$kw_tot,0),
   round(cantons$gwh_tot,1),
   round(cantons$p_rf_fac,1),
   round(cantons$gwh_tot / cantons$p_rf_fac * 100,1),
-  cantons$pol_or_cat
+  cantons$pol_or_cat,
+  round(cantons$own_frac * 100, 1)
 ) %>% lapply(htmltools::HTML)
 
 years <- seq(2004, 2022)
 
 ui <- fluidPage(theme = shinytheme("sandstone"),
   fluidRow(
+    # conditionalPanel with contents depending on the radio button
+    column(6,
+           conditionalPanel("input.add_info == 'def'", "Description and instruction how to use the map, info for whole Switzerland / currently selected canton"),
+           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
+           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot"))),
+    column(6,plotOutput("plot"))
+  ),
+  fluidRow(
+    column(10, leafletOutput("map")),
     column(2,
            #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
            p(),
@@ -110,17 +144,8 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
            radioButtons(inputId="add_info", label="Additional information",
                         choices = c("Solar energy in Switzerland" = "def", 
                                     "Political orientation" = "pol", 
-                                    "Property ownership" = "prop"), selected = "def")
-    ),
-    column(10, leafletOutput("map"))
-  ),
-  fluidRow(
-    column(6,plotOutput("plot")),
-    # conditionalPanel with contents depending on the radio button
-    column(6,
-           conditionalPanel("input.add_info == 'def'", "Default"),
-           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), #plotOutput("pol_or_plot")
-           conditionalPanel("input.add_info == 'prop'", "Property information")) #plotOutput("prop_info_plot")
+                                    "Home ownership" = "prop"), selected = "def")
+    )
   )
 )
 
@@ -156,6 +181,7 @@ server <- function(input, output, session) {
   
   # displaying the political orientation base plot
   output$pol_or_plot <- renderPlot({returnPolPlot()})
+  output$home_own_plot <- renderPlot({returnHomePlot()})
   
   # dataframes for multiple selection
   to_vis_map <<- data.frame()
@@ -192,15 +218,12 @@ server <- function(input, output, session) {
                     labelOptions = labelOptions(direction = "auto")) %>%
         setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
         setMaxBounds(lng1=5.861533, lat1=45.72593, lng2=10.60032, lat2=47.85311) %>%
-        addLegend(pal = pal_cantons, 
-                  values = cantons$gwh_tot/cantons$p_rf_fac, 
+        addLegend(colors = pal_cantons_man, 
+                  labels = legend_labels_cantons,
                   opacity = 1, 
-                  title="Exhaustion of PV potential", 
-                  position="bottomright",
-                  labFormat = labelFormat(
-                    suffix = " %",
-                    transform = transf_fracs_to_percs
-                  )) %>%
+                  title=HTML("Exhaustion of<br>PV potential"), 
+                  position="bottomright"
+                  ) %>%
         addSearchOSM(options = searchOptions(collapsed = T, 
                                              autoCollapse=T, 
                                              hideMarkerOnCollapse = T, 
@@ -319,18 +342,20 @@ server <- function(input, output, session) {
           labels_muns <- sprintf(
             "<strong>%s</strong>
             <br/>Population: %d
-            <br/>Installed power: %g kW
-            <br/>Current energy output: %g GWh
-            <br/>Potential: %g GWh
-            <br/>Potential exhausted: %g%%
-            <br/>Political orientation: %s",
+            <br/>Installed PV power: %g kW
+            <br/>Current PV energy output: %g GWh
+            <br/>PV Potential: %g GWh
+            <br/>PV Potential exhausted: %g%%
+            <br/>Political orientation: %s
+            <br/>Home ownership rate: %g%%",
             muns_shown_geom$name, 
             round(muns_shown_geom$pop,0),
             round(muns_shown_geom$kw_tot,0),
             round(muns_shown_geom$gwh_tot,1),
             round(muns_shown_geom$p_rf_fac,1),
             round(muns_shown_geom$gwh_tot / muns_shown_geom$p_rf_fac * 100,1),
-            muns_shown_geom$pol_or_cat
+            muns_shown_geom$pol_or_cat,
+            round(muns_shown_geom$own_frac * 100, 1)
           ) %>% lapply(htmltools::HTML)
               
           leafletProxy("map") %>%
@@ -381,15 +406,12 @@ server <- function(input, output, session) {
                         ),
                         label=labels_muns,
                         labelOptions = labelOptions(direction = "auto")) %>%
-                        addLegend(pal = pal_muns, 
-                          values = muns_shown_geom$gwh_tot/muns_shown_geom$p_rf_fac, 
+                        addLegend(colors = pal_muns_man, 
+                          labels = legend_labels_muns,
                           opacity = 1, 
-                          title="Exhaustion of PV potential", 
-                          position="topright",
-                          labFormat = labelFormat(
-                            suffix = " %",
-                            transform = transf_fracs_to_percs
-                        )) %>%
+                          title=HTML("Exhaustion of<br>PV potential"), 
+                          position="topright"
+                          ) %>%
             addControl(actionButton(inputId = "back", label="", icon = icon("house"), width="40px")) %>%
             addPolygons(data=lakes, 
                         group = "lakes",
@@ -403,6 +425,16 @@ server <- function(input, output, session) {
               scale_color_manual(values=c("red", "black")) +
               geom_point(data=muns_shown_geom, 
                          mapping=aes(x=pol_or, 
+                                     y = gwh_tot / p_rf_fac, 
+                                     col=paste("Municipalities of the canton of", cantons$name[cur_canton])), size=2)
+          })
+          
+          # updating the home ownership plot
+          output$home_own_plot <- renderPlot({
+            returnHomePlot() +
+              scale_color_manual(values=c("red", "black")) +
+              geom_point(data=muns_shown_geom, 
+                         mapping=aes(x=own_frac, 
                                      y = gwh_tot / p_rf_fac, 
                                      col=paste("Municipalities of the canton of", cantons$name[cur_canton])), size=2)
           })
@@ -561,15 +593,12 @@ server <- function(input, output, session) {
                   labelOptions = labelOptions(direction = "auto")) %>%
       # reset view to show all cantons
       setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
-      addLegend(pal = pal_cantons, 
-                values = cantons$gwh_tot/cantons$p_rf_fac, 
+      addLegend(colors = pal_cantons_man, 
+                labels = legend_labels_cantons, 
                 opacity = 1, 
-                title="Exhaustion of PV potential", 
-                position="bottomright",
-                labFormat = labelFormat(
-                  suffix = " %",
-                  transform = transf_fracs_to_percs
-                )) %>%
+                title=HTML("Exhaustion of<br>PV potential"), 
+                position="bottomright"
+                ) %>%
       addPolygons(data=ch,
                   group="ch",
                   fill=F,
@@ -589,6 +618,7 @@ server <- function(input, output, session) {
     
     # reset political orientation plot
     output$pol_or_plot <- renderPlot({returnPolPlot()})
+    output$home_own_plot <- renderPlot({returnHomePlot()})
   })
 }
 

@@ -60,3 +60,66 @@ ggplot() +
   theme_classic()
 ```
 
+```{r}
+library(extrafont)
+library(ggtext)
+#font_import("Roboto")
+#loadfonts(device = "all")
+
+ggplot() +
+  geom_point(data=muns, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac), size=0.2) +
+  labs(title = "Home ownership rate vs exhaustion of PV potential at municipality level", x="Home ownership rate [%]", y="Exhaustion [%]", col="") +
+  scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+  scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+  theme_classic() +
+  theme(text=element_text(family="Roboto", face="bold", size=12))
+  #theme(text=ggtext::element_markdown(family="Courier New", face="bold", size=12))
+```
+
+```{r}
+# old UI
+ui <- fluidPage(theme = shinytheme("sandstone"),
+  fluidRow(
+    column(2,
+           #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
+           p(),
+           actionButton(
+             inputId = "reset",
+             label = "Clear selection"
+           ),
+           p(),
+           div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
+           # choosing municipality type to be rendered in the plot
+           selectInput(
+             inputId = "municipality_type",
+             label = "Municipality types",
+             choices = as.character(typ$name),
+             selected = as.character(typ$name)[1],
+             multiple = T
+           ),
+           # choosing municipality type to be rendered in the plot
+           selectInput(
+             inputId = "canton",
+             label = "Cantons",
+             choices = as.character(cantons$name),
+             selected = as.character(cantons$name)[1],
+             multiple = T
+           ),
+           radioButtons(inputId="add_info", label="Additional information",
+                        choices = c("Solar energy in Switzerland" = "def", 
+                                    "Political orientation" = "pol", 
+                                    "Home ownership" = "prop"), selected = "def")
+    ),
+    column(10, leafletOutput("map"))
+  ),
+  fluidRow(
+    column(6,plotOutput("plot")),
+    # conditionalPanel with contents depending on the radio button
+    column(6,
+           conditionalPanel("input.add_info == 'def'", "Description and instruction how to use the map, info for whole Switzerland / currently selected canton"),
+           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
+           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot")))
+  )
+)
+```
+
