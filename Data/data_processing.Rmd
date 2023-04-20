@@ -896,7 +896,19 @@ ch_installed_pot_simplified <- ms_simplify(ch_gwh_pot, keep_shapes = T, keep=0.0
 # Load and simplify lakes
 lakes_unsimp <- st_zm(read_sf("unprocessed_data/lakes/lakes.shp"))
 
-lakes_simp <- ms_simplify(lakes_unsimp, keep_shapes = T, keep=0.001)
+lakes_simp <- ms_simplify(lakes_unsimp, keep_shapes = T, keep=0.005)
+```
+
+```{r}
+# creating new canton dataset with simplified municipalities
+cantons_simplified_muns <- muns_installed_pot_simplified %>%
+  dplyr::group_by(knr.x) %>%
+  dplyr::summarize(geometry = st_union(geometry))
+
+ggplot() +
+  geom_sf(data=cantons_simplified_muns, fill=NA) +
+  geom_sf(data=lakes_simp, mapping=aes(), fill="blue") +
+  theme_void()
 ```
 
 ```{r}
@@ -926,6 +938,7 @@ st_write(cantons_installed_pot_simplified, "processed_data/cantons/cantons.shp",
 st_write(typ_installed_pot_simplified, "processed_data/typology/typology.shp", append=F)
 st_write(ch_installed_pot_simplified, "processed_data/switzerland/switzerland.shp", append=F)
 st_write(lakes_simp, "processed_data/lakes/lakes.shp", append=F)
+st_write(cantons_simplified_muns, "processed_data/cantons/cantons_simp.shp", append=F)
 ```
 
 ```{r}

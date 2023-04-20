@@ -14,7 +14,7 @@ library(RColorBrewer)
 returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
     geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
-    labs(title = "Exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+    labs(title = "Development of the exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
     theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
@@ -54,11 +54,9 @@ returnHomePlot <- function() {
 # Reading data and transforming to WGS84
 muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
 cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
+cantons_simp <-  st_transform(st_read("processed_data/cantons/cantons_simp.shp"), crs=4326)
 typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
 ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
-muns_point <- st_transform(st_read("processed_data/point_data/municipalities_point.shp"), crs=4326)
-cantons_point <-  st_transform(st_read("processed_data/point_data/cantons_point.shp"), crs=4326)
-
 lakes <-  st_transform(st_read("processed_data/lakes/lakes.shp"), crs=4326)
 
 zoom_lvls <- read.csv("processed_data/zoom_levels.csv")
@@ -103,13 +101,22 @@ labels_cantons <- sprintf(
   round(cantons$own_frac * 100, 1)
 ) %>% lapply(htmltools::HTML)
 
+infobox <- HTML("<div style='text-align: justify;'><h3><strong>Exhaustion of solar energy potential in Switzerland</strong></h3><br/>
+                The map shows the exhaustion of photovoltaic potential for every canton of Switzerland. A canton may be selected to reveal the municipalities
+                within the canton. The municipalities can once again be selected, which adds them to the plot on the top right and allows for the comparison of the
+                development of the exhaustion over time between different municipalities. For additional comparisons, the exhaustion of cantons and municipality 
+                types may be added to the plot via the boxes in the bottom right panel. Elements may be removed from the plot through the clear selection button.
+                <br/><br/>Additional information in the form of two socioeconomic variables may be displayed by selecting the respective radio button on the bottom 
+                right panel, which produces a scatter plot where the municipalities of the currently selected canton are highlighted.
+                </div>")
+
 years <- seq(2004, 2022)
 
 ui <- fluidPage(theme = shinytheme("sandstone"),
   fluidRow(
     # conditionalPanel with contents depending on the radio button
     column(6,
-           conditionalPanel("input.add_info == 'def'", "Description and instruction how to use the map, info for whole Switzerland / currently selected canton"),
+           conditionalPanel("input.add_info == 'def'", infobox),
            conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
            conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot"))),
     column(6,plotOutput("plot"))
@@ -142,7 +149,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
              multiple = T
            ),
            radioButtons(inputId="add_info", label="Additional information",
-                        choices = c("Solar energy in Switzerland" = "def", 
+                        choices = c("Instructions" = "def", 
                                     "Political orientation" = "pol", 
                                     "Home ownership" = "prop"), selected = "def")
     )
@@ -337,7 +344,7 @@ server <- function(input, output, session) {
           muns_shown_geom <<- muns %>% filter(knr_x == canton_nr)
           
           # currently clicked canton
-          canton_shown_geom <- cantons %>% filter(KANTONSNUM == canton_nr)
+          canton_shown_geom <- cantons_simp %>% filter(knr_x == canton_nr)
             
           labels_muns <- sprintf(
             "<strong>%s</strong>
