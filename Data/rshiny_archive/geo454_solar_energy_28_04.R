@@ -9,12 +9,11 @@ library(htmlwidgets)
 library(leaflet.extras)
 library(shinythemes)
 library(RColorBrewer)
-library(shinyWidgets)
 
 # Function that renders the plot with the evolution of the potential
 returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
-    geom_line(mapping=aes(x = years, y =installed/potential, col=name), size=1.5) +
+    geom_line(mapping=aes(x = years, y =installed/potential, col=name)) +
     labs(title = "Development of the exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
@@ -52,19 +51,15 @@ returnHomePlot <- function() {
   return(returnedPlot)
 }
 
-# size of the map, can be 400, 600 or 800
-size <- 800
-
 # Reading data and transforming to WGS84
-muns <- st_read("processed_data/municipalities/municipalities.shp")
-cantons <-  st_read("processed_data/cantons/cantons.shp")
-cantons_simp <-  st_read("processed_data/cantons/cantons_simp.shp")
-typ <-  st_read("processed_data/typology/typology.shp")
-ch <-  st_read("processed_data/switzerland/switzerland.shp")
-ch_simp <-  st_read("processed_data/switzerland/switzerland_simp.shp")
-lakes <-  st_read("processed_data/lakes/lakes.shp")
+muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
+cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
+cantons_simp <-  st_transform(st_read("processed_data/cantons/cantons_simp.shp"), crs=4326)
+typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
+ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
+lakes <-  st_transform(st_read("processed_data/lakes/lakes.shp"), crs=4326)
 
-zoom_lvls <- read.csv(paste0("processed_data/zoom_levels/zoom_levels_",size,".csv"))
+zoom_lvls <- read.csv("processed_data/zoom_levels.csv")
 energy_perspectives <- read.csv("processed_data/energieperspektive_2050.csv")
 
 # bins and color palette for the cantons
@@ -117,23 +112,17 @@ infobox <- HTML("<div style='text-align: justify;'><h3><strong>Exhaustion of sol
 
 years <- seq(2004, 2022)
 
-# height 400 --> 7.5, height 600 --> 8, height 800 --> 8.5
-if (size == 400){
-  defaultZoom <- 7.5
-} else if (size == 600) {
-  defaultZoom <- 8
-} else if (size == 800) {
-  defaultZoom <- 8.5
-}
-
 ui <- fluidPage(theme = shinytheme("sandstone"),
   fluidRow(
     # conditionalPanel with contents depending on the radio button
-    column(5,
+    column(6,
            conditionalPanel("input.add_info == 'def'", infobox),
            conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
            conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot"))),
-    column(5,plotOutput("plot")),
+    column(6,plotOutput("plot"))
+  ),
+  fluidRow(
+    column(10, leafletOutput("map")),
     column(2,
            #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
            p(),
@@ -144,21 +133,19 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
            p(),
            div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
            # choosing municipality type to be rendered in the plot
-           pickerInput(
+           selectInput(
              inputId = "municipality_type",
              label = "Municipality types",
              choices = as.character(typ$name),
-             options = list(
-               `selected-text-format` = "count > 1"), 
+             selected = as.character(typ$name)[1],
              multiple = T
            ),
            # choosing municipality type to be rendered in the plot
-           pickerInput(
+           selectInput(
              inputId = "canton",
              label = "Cantons",
              choices = as.character(cantons$name),
-             options = list(
-               `selected-text-format` = "count > 1"), 
+             selected = as.character(cantons$name)[1],
              multiple = T
            ),
            radioButtons(inputId="add_info", label="Additional information",
@@ -166,9 +153,6 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                     "Political orientation" = "pol", 
                                     "Home ownership" = "prop"), selected = "def")
     )
-  ),
-  fluidRow(
-    column(12, leafletOutput("map", height=size))
   )
 )
 
@@ -217,7 +201,7 @@ server <- function(input, output, session) {
       leaflet(options=leafletOptions(zoomControl = T,
                                      zoomSnap = 0.1,
                                      zoomDelta = 1,
-                                     minZoom = defaultZoom)) %>%
+                                     minZoom = 7.5)) %>%
         #addProviderTiles(providers$CartoDB.PositronNoLabels,
         #                 options = providerTileOptions(noWrap = TRUE)
         #) %>%
@@ -239,13 +223,13 @@ server <- function(input, output, session) {
                     ),
                     label=labels_cantons,
                     labelOptions = labelOptions(direction = "auto")) %>%
-        setView(lng=8.227481, lat=46.80137, zoom=defaultZoom) %>%
-        setMaxBounds(lng1=5.861533-0.5, lat1=45.72593-0.5, lng2=10.60032+0.5, lat2=47.85311+0.5) %>%
+        setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
+        setMaxBounds(lng1=5.861533, lat1=45.72593, lng2=10.60032, lat2=47.85311) %>%
         addLegend(colors = pal_cantons_man, 
                   labels = legend_labels_cantons,
                   opacity = 1, 
                   title=HTML("Exhaustion of<br>PV potential"), 
-                  position="topright"
+                  position="bottomright"
                   ) %>%
         addSearchOSM(options = searchOptions(collapsed = T, 
                                              autoCollapse=T, 
@@ -254,7 +238,7 @@ server <- function(input, output, session) {
                                              zoom=11,
                                              firstTipSubmit = T)) %>%
         onRender("function(el, x) {$(el).css('background-color', 'white');}") %>%
-        addPolygons(data=ch_simp,
+        addPolygons(data=ch,
                     group="ch",
                     fill=F,
                     weight=3,
@@ -615,14 +599,14 @@ server <- function(input, output, session) {
                   label=labels_cantons,
                   labelOptions = labelOptions(direction = "auto")) %>%
       # reset view to show all cantons
-      setView(lng=8.227481, lat=46.80137, zoom=defaultZoom) %>%
+      setView(lng=8.227481, lat=46.80137, zoom=7.5) %>%
       addLegend(colors = pal_cantons_man, 
                 labels = legend_labels_cantons, 
                 opacity = 1, 
                 title=HTML("Exhaustion of<br>PV potential"), 
-                position="topright"
+                position="bottomright"
                 ) %>%
-      addPolygons(data=ch_simp,
+      addPolygons(data=ch,
                   group="ch",
                   fill=F,
                   weight=3,

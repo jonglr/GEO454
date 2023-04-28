@@ -873,8 +873,8 @@ cantons_pol_point <- cantons_gwh_pot_pol_cat_own %>%
   st_drop_geometry() %>%
   st_as_sf(., coords=c("gkode", "gkodn"), crs=2056)
 
-st_write(muns_pol_point, "processed_data/point_data/municipalities_point.shp", append=F)
-st_write(cantons_pol_point, "processed_data/point_data/cantons_point.shp", append=F)
+#st_write(muns_pol_point, "processed_data/point_data/municipalities_point.shp", append=F)
+#st_write(cantons_pol_point, "processed_data/point_data/cantons_point.shp", append=F)
 ```
 
 ```{r}
@@ -905,6 +905,18 @@ cantons_simplified_muns <- muns_installed_pot_simplified %>%
   dplyr::group_by(knr.x) %>%
   dplyr::summarize(geometry = st_union(geometry))
 
+# creating new ch dataset with simplified cantons
+ch_simplified_cantons <- cantons_installed_pot_simplified %>%
+  dplyr::summarize(geometry = st_union(geometry))
+```
+
+```{r}
+ggplot() +
+  geom_sf(data=ch_simplified_cantons, fill=NA) +
+  theme_void()
+```
+
+```{r}
 ggplot() +
   geom_sf(data=cantons_simplified_muns, fill=NA) +
   geom_sf(data=lakes_simp, mapping=aes(), fill="blue") +
@@ -932,20 +944,21 @@ ggplot() +
 ```
 
 ```{r}
-# Saving spatial data as shapefiles
-st_write(muns_installed_pot_simplified, "processed_data/municipalities/municipalities.shp", append=F)
-st_write(cantons_installed_pot_simplified, "processed_data/cantons/cantons.shp", append=F)
-st_write(typ_installed_pot_simplified, "processed_data/typology/typology.shp", append=F)
-st_write(ch_installed_pot_simplified, "processed_data/switzerland/switzerland.shp", append=F)
-st_write(lakes_simp, "processed_data/lakes/lakes.shp", append=F)
-st_write(cantons_simplified_muns, "processed_data/cantons/cantons_simp.shp", append=F)
+# Saving spatial data as shapefiles in WGS84 for Leaflet purposes
+st_write(st_transform(muns_installed_pot_simplified, crs=4326), "processed_data/municipalities/municipalities.shp", append=F)
+st_write(st_transform(cantons_installed_pot_simplified, crs=4326), "processed_data/cantons/cantons.shp", append=F)
+st_write(st_transform(typ_installed_pot_simplified, crs=4326), "processed_data/typology/typology.shp", append=F)
+st_write(st_transform(ch_installed_pot_simplified, crs=4326), "processed_data/switzerland/switzerland.shp", append=F)
+st_write(st_transform(lakes_simp, crs=4326), "processed_data/lakes/lakes.shp", append=F)
+st_write(st_transform(cantons_simplified_muns, crs=4326), "processed_data/cantons/cantons_simp.shp", append=F)
+st_write(st_transform(ch_simplified_cantons, crs=4326), "processed_data/switzerland/switzerland_simp.shp", append=F)
 ```
 
 ```{r}
 # Check whether data was exported correctly
-processed_muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
-processed_cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
-processed_typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
-processed_ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
+processed_muns <- st_read("processed_data/municipalities/municipalities.shp")
+processed_cantons <-  st_read("processed_data/cantons/cantons.shp")
+processed_typ <-  st_read("processed_data/typology/typology.shp")
+processed_ch <-  st_read("processed_data/switzerland/switzerland.shp")
 ```
 
