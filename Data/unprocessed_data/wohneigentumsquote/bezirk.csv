@@ -1,0 +1,135 @@
+﻿bez_num,name,wohneigentumsquote_bezirk
+101,Affoltern,0.469
+102,Andelfingen,0.563
+103,Bülach,0.315
+104,Dielsdorf,0.36
+105,Hinwil,0.417
+106,Horgen,0.298
+107,Meilen,0.384
+108,Pfäffikon,0.439
+109,Uster,0.341
+110,Winterthur,0.332
+111,Dietikon,0.247
+112,Zürich,0.091
+241,Jura bernois,0.435
+242,Biel/Bienne,0.308
+243,Seeland,0.497
+244,Oberaargau,0.482
+245,Emmental,0.438
+246,Bern-Mittelland,0.318
+247,Thun,0.421
+248,Obersimmental-Saanen,0.471
+249,Frutigen-Niedersimmental,0.483
+250,Interlaken-Oberhasli,0.454
+311,Luzern-Stadt,0.147
+312,Luzern-Land,0.376
+313,Hochdorf,0.357
+314,Sursee,0.441
+315,Willisau,0.425
+316,Entlebuch,0.461
+501,Einsiedeln,0.424
+502,Gersau,0.482
+503,Höfe,0.373
+504,Küssnacht (SZ),0.36
+505,March,0.411
+506,Schwyz,0.41
+1001,La Broye,0.469
+1002,La Glâne,0.471
+1003,La Gruyère,0.413
+1004,La Sarine,0.328
+1005,See / Lac,0.466
+1006,Sense,0.49
+1007,La Veveyse,0.49
+1101,Gäu,0.458
+1102,Thal,0.549
+1103,Bucheggberg,0.613
+1104,Dorneck,0.603
+1105,Gösgen,0.555
+1106,Wasseramt,0.478
+1107,Lebern,0.502
+1108,Olten,0.398
+1109,Solothurn,0.242
+1110,Thierstein,0.604
+1301,Arlesheim,0.401
+1302,Laufen,0.507
+1303,Liestal,0.427
+1304,Sissach,0.571
+1305,Waldenburg,0.582
+1401,Oberklettgau,0.609
+1402,Reiat,0.539
+1403,Schaffhausen,0.332
+1404,Schleitheim,0.539
+1405,Stein,0.499
+1406,Unterklettgau,0.615
+1501,Hinterland,0.409
+1502,Mittelland,0.486
+1503,Vorderland,0.552
+1721,St. Gallen,0.271
+1722,Rorschach,0.396
+1723,Rheintal,0.481
+1724,Werdenberg,0.428
+1725,Sarganserland,0.476
+1726,See-Gaster,0.423
+1727,Toggenburg,0.493
+1728,Wil,0.43
+1841,Albula,0.534
+1842,Bernina,0.61
+1843,Engiadina B./Val Müstair,0.536
+1844,Imboden,0.452
+1845,Landquart,0.496
+1846,Maloja,0.386
+1847,Moesa,0.542
+1848,Plessur,0.304
+1849,Prättigau / Davos,0.453
+1850,Surselva,0.554
+1851,Viamala,0.486
+1901,Aarau,0.435
+1902,Baden,0.423
+1903,Bremgarten,0.474
+1904,Brugg,0.491
+1905,Kulm,0.512
+1906,Laufenburg,0.555
+1907,Lenzburg,0.486
+1908,Muri,0.51
+1909,Rheinfelden,0.459
+1910,Zofingen,0.449
+1911,Zurzach,0.516
+2011,Arbon,0.398
+2012,Frauenfeld,0.457
+2013,Kreuzlingen,0.424
+2014,Münchwilen,0.513
+2015,Weinfelden,0.473
+2101,Bellinzona,0.385
+2102,Blenio,0.591
+2103,Leventina,0.47
+2104,Locarno,0.369
+2105,Lugano,0.373
+2106,Mendrisio,0.393
+2107,Riviera,0.427
+2108,Vallemaggia,0.552
+2221,Aigle,0.389
+2222,Broye-Vully,0.371
+2223,Gros-de-Vaud,0.475
+2224,Jura-Nord vaudois,0.347
+2225,Lausanne,0.123
+2226,Lavaux-Oron,0.404
+2227,Morges,0.379
+2228,Nyon,0.427
+2229,Ouest lausannois,0.161
+2230,Riviera-Pays-d'Enhaut,0.286
+2301,Brig,0.544
+2302,Conthey,0.599
+2303,Entremont,0.649
+2304,Goms,0.658
+2305,Hérens,0.655
+2306,Leuk,0.647
+2307,Martigny,0.499
+2308,Monthey,0.512
+2309,Raron,0.734
+2310,Saint-Maurice,0.548
+2311,Sierre,0.566
+2312,Sion,0.442
+2313,Visp,0.56
+2601,Delémont,0.473
+2602,Les Franches-Montagnes,0.481
+2603,Porrentruy,0.534

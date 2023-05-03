@@ -10,21 +10,30 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(tidyr)
 library(sf)
 library(dplyr)
 library(ggplot2)
+library(data.table)
+#library(rmapshaper)
+#library(pxR)
+#library(tidyr)
 ```
 
 ```{r}
 # Loading the data
-ch <- read_sf("unprocessed_data/boundaries/Switzerland/switzerland.shp")
-cantons_unproc <- read_sf("unprocessed_data/boundaries/Cantons/cantons.shp")
-muns_unproc <- read_sf("unprocessed_data/boundaries/Municipalities/municipalities.shp")
+ch <- st_zm(read_sf("unprocessed_data/boundaries/Switzerland/switzerland.shp"))
+cantons_unproc <- st_zm(read_sf("unprocessed_data/boundaries/Cantons/cantons.shp"))
+muns_unproc <- st_zm(read_sf("unprocessed_data/boundaries/Municipalities/municipalities.shp"))
+typology_unproc <- st_make_valid(st_zm(read_sf("unprocessed_data/boundaries/Typology/mun_typology.shp")))
 
 ele_prod_plants_csv <- read.csv("unprocessed_data/ElectricityProductionPlant.csv")
 potentials <- read.csv("unprocessed_data/Solarenergiepotenziale_Gemeinden_Daecher_und_Fassaden.csv")
 
 gdeverzeichnis <- read.csv("unprocessed_data/help/PLZO_CSV_LV95.csv", sep=";")
+statpop <- read.csv("unprocessed_data/help/volkszaehlung-bevoelkerungsstatistik_einwohner_2021_2056.csv", sep=";")
+
+statpop_sf <- st_as_sf(statpop, coords=c("E_KOORD", "N_KOORD"), crs=2056)
 ```
 
 ```{r}
@@ -38,10 +47,26 @@ muns <- muns_unproc %>%
   filter(BFS_NUMMER < 7000) %>%
   group_by(BFS_NUMMER) %>%
   summarize(name=max(NAME), knr = max(KANTONSNUM), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
+```
+
+```{r}
+typ <- typology_unproc %>%
+  group_by(TYP) %>%
+  summarize(name=max(NAME), geometry = st_union(geometry))
+
+# getting population of typology
+typ_statpop <- st_join(x = typ, y = statpop_sf) 
+setDT(typ_statpop)
+typ_pop <- typ_statpop[, .(pop = sum(NUMMER, na.rm=T)), by="TYP"]
+rm(typ_statpop)
+
+typ <- left_join(typ, typ_pop, by="TYP")
 
 muns <- st_transform(muns, 2056)
 cantons <- st_transform(cantons, 2056)
+typ <- st_transform(typ, 2056)
 ```
+
 
 ```{r}
 # filtering solar energy production plants (subcat_2)
@@ -49,7 +74,7 @@ pv_plants_csv <- ele_prod_plants_csv %>%
   filter(SubCategory == "subcat_2") %>%
   mutate(id = row_number())
 
-# Fetching coordinates of plants with missing plant
+# Fetching coordinates of plants with missing coordinates
 pv_plants_csv_corr <- pv_plants_csv %>%
   # going from PLZ to coordinates
   left_join(gdeverzeichnis, by=c("PostCode" = "PLZ")) %>%
@@ -95,100 +120,100 @@ pv_plants_2021 <- filter(pv_plants, year_installed == 2021)
 pv_plants_2022 <- filter(pv_plants, year_installed == 2022)
 
 # Joining potentials and municipalities
-muns_before2005 <- st_join(x = muns, y = pv_plants_before2005) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_before2005 = sum(TotalPower, na.rm=T)) %>%
-  st_drop_geometry()
+muns_before2005_temp <- st_join(x = muns, y = pv_plants_before2005) 
+setDT(muns_before2005_temp)
+muns_before2005 <- muns_before2005_temp[, .(kw_b2005 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_before2005_temp)
 
-muns_2005 <- st_join(x = muns, y = pv_plants_2005) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2005 = sum(TotalPower, na.rm=T)) %>%
-  st_drop_geometry()
+muns_2005_temp <- st_join(x = muns, y = pv_plants_2005) 
+setDT(muns_2005_temp)
+muns_2005 <- muns_2005_temp[, .(kw_2005 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2005_temp)
 
-muns_2006 <- st_join(x = muns, y = pv_plants_2006) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2006 = sum(TotalPower, na.rm=T)) %>%
-  st_drop_geometry()
+muns_2006_temp <- st_join(x = muns, y = pv_plants_2006) 
+setDT(muns_2006_temp)
+muns_2006 <- muns_2006_temp[, .(kw_2006 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2006_temp)
 
-muns_2007 <- st_join(x = muns, y = pv_plants_2007) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2007 = sum(TotalPower, na.rm=T)) %>%
-  st_drop_geometry()
+muns_2007_temp <- st_join(x = muns, y = pv_plants_2007) 
+setDT(muns_2007_temp)
+muns_2007 <- muns_2007_temp[, .(kw_2007 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2007_temp)
 
-muns_2008 <- st_join(x = muns, y = pv_plants_2008) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2008 = sum(TotalPower, na.rm=T)) %>%
-  st_drop_geometry()
+muns_2008_temp <- st_join(x = muns, y = pv_plants_2008) 
+setDT(muns_2008_temp)
+muns_2008 <- muns_2008_temp[, .(kw_2008 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2008_temp)
 
-muns_2009 <- st_join(x = muns, y = pv_plants_2009) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2009 = sum(TotalPower, na.rm=T)) %>%
-  st_drop_geometry()
+muns_2009_temp <- st_join(x = muns, y = pv_plants_2009) 
+setDT(muns_2009_temp)
+muns_2009 <- muns_2009_temp[, .(kw_2009 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2009_temp)
 
-muns_2010 <- st_join(x = muns, y = pv_plants_2010) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2010 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2010_temp <- st_join(x = muns, y = pv_plants_2010) 
+setDT(muns_2010_temp)
+muns_2010 <- muns_2010_temp[, .(kw_2010 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2010_temp)
 
-muns_2011 <- st_join(x = muns, y = pv_plants_2011) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2011 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2011_temp <- st_join(x = muns, y = pv_plants_2011) 
+setDT(muns_2011_temp)
+muns_2011 <- muns_2011_temp[, .(kw_2011 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2011_temp)
 
-muns_2012 <- st_join(x = muns, y = pv_plants_2012) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2012 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2012_temp <- st_join(x = muns, y = pv_plants_2012) 
+setDT(muns_2012_temp)
+muns_2012 <- muns_2012_temp[, .(kw_2012 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2012_temp)
 
-muns_2013 <- st_join(x = muns, y = pv_plants_2013) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2013 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2013_temp <- st_join(x = muns, y = pv_plants_2013) 
+setDT(muns_2013_temp)
+muns_2013 <- muns_2013_temp[, .(kw_2013 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2013_temp)
 
-muns_2014 <- st_join(x = muns, y = pv_plants_2014) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2014 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2014_temp <- st_join(x = muns, y = pv_plants_2014) 
+setDT(muns_2014_temp)
+muns_2014 <- muns_2014_temp[, .(kw_2014 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2014_temp)
 
-muns_2015 <- st_join(x = muns, y = pv_plants_2015) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2015 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2015_temp <- st_join(x = muns, y = pv_plants_2015) 
+setDT(muns_2015_temp)
+muns_2015 <- muns_2015_temp[, .(kw_2015 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2015_temp)
 
-muns_2016 <- st_join(x = muns, y = pv_plants_2016) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2016 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2016_temp <- st_join(x = muns, y = pv_plants_2016) 
+setDT(muns_2016_temp)
+muns_2016 <- muns_2016_temp[, .(kw_2016 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2016_temp)
 
-muns_2017 <- st_join(x = muns, y = pv_plants_2017) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2017 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2017_temp <- st_join(x = muns, y = pv_plants_2017) 
+setDT(muns_2017_temp)
+muns_2017 <- muns_2017_temp[, .(kw_2017 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2017_temp)
 
-muns_2018 <- st_join(x = muns, y = pv_plants_2018) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2018 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2018_temp <- st_join(x = muns, y = pv_plants_2018) 
+setDT(muns_2018_temp)
+muns_2018 <- muns_2018_temp[, .(kw_2018 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2018_temp)
 
-muns_2019 <- st_join(x = muns, y = pv_plants_2019) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2019 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2019_temp <- st_join(x = muns, y = pv_plants_2019) 
+setDT(muns_2019_temp)
+muns_2019 <- muns_2019_temp[, .(kw_2019 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2019_temp)
 
-muns_2020 <- st_join(x = muns, y = pv_plants_2020) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2020 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2020_temp <- st_join(x = muns, y = pv_plants_2020) 
+setDT(muns_2020_temp)
+muns_2020 <- muns_2020_temp[, .(kw_2020 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2020_temp)
 
-muns_2021 <- st_join(x = muns, y = pv_plants_2021) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2021 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2021_temp <- st_join(x = muns, y = pv_plants_2021) 
+setDT(muns_2021_temp)
+muns_2021 <- muns_2021_temp[, .(kw_2021 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2021_temp)
 
-muns_2022 <- st_join(x = muns, y = pv_plants_2022) %>%
-  group_by(BFS_NUMMER) %>%
-  summarize(installed_kw_2022 = sum(TotalPower, na.rm = TRUE)) %>%
-  st_drop_geometry()
+muns_2022_temp <- st_join(x = muns, y = pv_plants_2022) 
+setDT(muns_2022_temp)
+muns_2022 <- muns_2022_temp[, .(kw_2022 = sum(TotalPower, na.rm=T)), by="BFS_NUMMER"]
+rm(muns_2022_temp)
 ```
 
 ```{r}
@@ -215,72 +240,217 @@ muns_kw_installed <- muns %>%
   left_join(muns_2022, by="BFS_NUMMER")
 
 muns_kw_installed <- muns_kw_installed %>%
-  mutate(installed_kw_total = 
-           installed_kw_before2005+
-           installed_kw_2005 +
-           installed_kw_2006 +
-           installed_kw_2007 +
-           installed_kw_2008 +
-           installed_kw_2009 +
-           installed_kw_2010 +
-           installed_kw_2011 +
-           installed_kw_2012 +
-           installed_kw_2013 +
-           installed_kw_2014 +
-           installed_kw_2015 +
-           installed_kw_2016 +
-           installed_kw_2017 +
-           installed_kw_2018 +
-           installed_kw_2019 +
-           installed_kw_2020 +
-           installed_kw_2021 +
-           installed_kw_2022)
+  mutate(kw_tot = 
+           kw_b2005+
+           kw_2005 +
+           kw_2006 +
+           kw_2007 +
+           kw_2008 +
+           kw_2009 +
+           kw_2010 +
+           kw_2011 +
+           kw_2012 +
+           kw_2013 +
+           kw_2014 +
+           kw_2015 +
+           kw_2016 +
+           kw_2017 +
+           kw_2018 +
+           kw_2019 +
+           kw_2020 +
+           kw_2021 +
+           kw_2022)
 ```
+
+```{r}
+# summing the results to municipality typology
+typ_before2005_temp <- st_join(x = typ, y = pv_plants_before2005) 
+setDT(typ_before2005_temp)
+typ_before2005 <- typ_before2005_temp[, .(kw_b2005 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_before2005_temp)
+
+typ_2005_temp <- st_join(x = typ, y = pv_plants_2005) 
+setDT(typ_2005_temp)
+typ_2005 <- typ_2005_temp[, .(kw_2005 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2005_temp)
+
+typ_2006_temp <- st_join(x = typ, y = pv_plants_2006) 
+setDT(typ_2006_temp)
+typ_2006 <- typ_2006_temp[, .(kw_2006 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2006_temp)
+
+typ_2007_temp <- st_join(x = typ, y = pv_plants_2007) 
+setDT(typ_2007_temp)
+typ_2007 <- typ_2007_temp[, .(kw_2007 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2007_temp)
+
+typ_2008_temp <- st_join(x = typ, y = pv_plants_2008) 
+setDT(typ_2008_temp)
+typ_2008 <- typ_2008_temp[, .(kw_2008 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2008_temp)
+
+typ_2009_temp <- st_join(x = typ, y = pv_plants_2009) 
+setDT(typ_2009_temp)
+typ_2009 <- typ_2009_temp[, .(kw_2009 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2009_temp)
+
+typ_2010_temp <- st_join(x = typ, y = pv_plants_2010) 
+setDT(typ_2010_temp)
+typ_2010 <- typ_2010_temp[, .(kw_2010 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2010_temp)
+
+typ_2011_temp <- st_join(x = typ, y = pv_plants_2011) 
+setDT(typ_2011_temp)
+typ_2011 <- typ_2011_temp[, .(kw_2011 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2011_temp)
+
+typ_2012_temp <- st_join(x = typ, y = pv_plants_2012) 
+setDT(typ_2012_temp)
+typ_2012 <- typ_2012_temp[, .(kw_2012 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2012_temp)
+
+typ_2013_temp <- st_join(x = typ, y = pv_plants_2013) 
+setDT(typ_2013_temp)
+typ_2013 <- typ_2013_temp[, .(kw_2013 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2013_temp)
+
+typ_2014_temp <- st_join(x = typ, y = pv_plants_2014) 
+setDT(typ_2014_temp)
+typ_2014 <- typ_2014_temp[, .(kw_2014 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2014_temp)
+
+typ_2015_temp <- st_join(x = typ, y = pv_plants_2015) 
+setDT(typ_2015_temp)
+typ_2015 <- typ_2015_temp[, .(kw_2015 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2015_temp)
+
+typ_2016_temp <- st_join(x = typ, y = pv_plants_2016) 
+setDT(typ_2016_temp)
+typ_2016 <- typ_2016_temp[, .(kw_2016 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2016_temp)
+
+typ_2017_temp <- st_join(x = typ, y = pv_plants_2017) 
+setDT(typ_2017_temp)
+typ_2017 <- typ_2017_temp[, .(kw_2017 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2017_temp)
+
+typ_2018_temp <- st_join(x = typ, y = pv_plants_2018) 
+setDT(typ_2018_temp)
+typ_2018 <- typ_2018_temp[, .(kw_2018 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2018_temp)
+
+typ_2019_temp <- st_join(x = typ, y = pv_plants_2019) 
+setDT(typ_2019_temp)
+typ_2019 <- typ_2019_temp[, .(kw_2019 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2019_temp)
+
+typ_2020_temp <- st_join(x = typ, y = pv_plants_2020) 
+setDT(typ_2020_temp)
+typ_2020 <- typ_2020_temp[, .(kw_2020 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2020_temp)
+
+typ_2021_temp <- st_join(x = typ, y = pv_plants_2021) 
+setDT(typ_2021_temp)
+typ_2021 <- typ_2021_temp[, .(kw_2021 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2021_temp)
+
+typ_2022_temp <- st_join(x = typ, y = pv_plants_2022) 
+setDT(typ_2022_temp)
+typ_2022 <- typ_2022_temp[, .(kw_2022 = sum(TotalPower, na.rm=T)), by="TYP"]
+rm(typ_2022_temp)
+```
+
+```{r}
+# Joining the results
+typ_kw_installed <- typ %>%
+  left_join(typ_before2005, by="TYP") %>%
+  left_join(typ_2005, by="TYP") %>%
+  left_join(typ_2006, by="TYP") %>%
+  left_join(typ_2007, by="TYP") %>%
+  left_join(typ_2008, by="TYP") %>%
+  left_join(typ_2009, by="TYP") %>%
+  left_join(typ_2010, by="TYP") %>%
+  left_join(typ_2011, by="TYP") %>%
+  left_join(typ_2012, by="TYP") %>%
+  left_join(typ_2013, by="TYP") %>%
+  left_join(typ_2014, by="TYP") %>%
+  left_join(typ_2015, by="TYP") %>%
+  left_join(typ_2016, by="TYP") %>%
+  left_join(typ_2017, by="TYP") %>%
+  left_join(typ_2018, by="TYP") %>%
+  left_join(typ_2019, by="TYP") %>%
+  left_join(typ_2020, by="TYP") %>%
+  left_join(typ_2021, by="TYP") %>%
+  left_join(typ_2022, by="TYP")
+
+typ_kw_installed <- typ_kw_installed %>%
+  mutate(kw_tot = 
+           kw_b2005+
+           kw_2005 +
+           kw_2006 +
+           kw_2007 +
+           kw_2008 +
+           kw_2009 +
+           kw_2010 +
+           kw_2011 +
+           kw_2012 +
+           kw_2013 +
+           kw_2014 +
+           kw_2015 +
+           kw_2016 +
+           kw_2017 +
+           kw_2018 +
+           kw_2019 +
+           kw_2020 +
+           kw_2021 +
+           kw_2022)
+```
+
 
 ```{r}
 # summing the results to cantons
 cantons_kw_installed_nongeo <- muns_kw_installed %>%
   group_by(knr) %>%
-  summarize(installed_kw_before2005 = sum(installed_kw_before2005, na.rm = TRUE),
-            installed_kw_2005 = sum(installed_kw_2005, na.rm = TRUE),
-            installed_kw_2006 = sum(installed_kw_2006, na.rm = TRUE),
-            installed_kw_2007 = sum(installed_kw_2007, na.rm = TRUE),
-            installed_kw_2008 = sum(installed_kw_2008, na.rm = TRUE),
-            installed_kw_2009 = sum(installed_kw_2009, na.rm = TRUE),
-            installed_kw_2010 = sum(installed_kw_2010, na.rm = TRUE),
-            installed_kw_2011 = sum(installed_kw_2011, na.rm = TRUE),
-            installed_kw_2012 = sum(installed_kw_2012, na.rm = TRUE),
-            installed_kw_2013 = sum(installed_kw_2013, na.rm = TRUE),
-            installed_kw_2014 = sum(installed_kw_2014, na.rm = TRUE),
-            installed_kw_2015 = sum(installed_kw_2015, na.rm = TRUE),
-            installed_kw_2016 = sum(installed_kw_2016, na.rm = TRUE),
-            installed_kw_2017 = sum(installed_kw_2017, na.rm = TRUE),
-            installed_kw_2018 = sum(installed_kw_2018, na.rm = TRUE),
-            installed_kw_2019 = sum(installed_kw_2019, na.rm = TRUE),
-            installed_kw_2020 = sum(installed_kw_2020, na.rm = TRUE),
-            installed_kw_2021 = sum(installed_kw_2021, na.rm = TRUE),
-            installed_kw_2022 = sum(installed_kw_2022, na.rm = TRUE)
+  summarize(kw_b2005 = sum(kw_b2005, na.rm = TRUE),
+            kw_2005 = sum(kw_2005, na.rm = TRUE),
+            kw_2006 = sum(kw_2006, na.rm = TRUE),
+            kw_2007 = sum(kw_2007, na.rm = TRUE),
+            kw_2008 = sum(kw_2008, na.rm = TRUE),
+            kw_2009 = sum(kw_2009, na.rm = TRUE),
+            kw_2010 = sum(kw_2010, na.rm = TRUE),
+            kw_2011 = sum(kw_2011, na.rm = TRUE),
+            kw_2012 = sum(kw_2012, na.rm = TRUE),
+            kw_2013 = sum(kw_2013, na.rm = TRUE),
+            kw_2014 = sum(kw_2014, na.rm = TRUE),
+            kw_2015 = sum(kw_2015, na.rm = TRUE),
+            kw_2016 = sum(kw_2016, na.rm = TRUE),
+            kw_2017 = sum(kw_2017, na.rm = TRUE),
+            kw_2018 = sum(kw_2018, na.rm = TRUE),
+            kw_2019 = sum(kw_2019, na.rm = TRUE),
+            kw_2020 = sum(kw_2020, na.rm = TRUE),
+            kw_2021 = sum(kw_2021, na.rm = TRUE),
+            kw_2022 = sum(kw_2022, na.rm = TRUE)
             ) %>%
-  mutate(installed_kw_total = 
-           installed_kw_before2005+
-           installed_kw_2005 +
-           installed_kw_2006 +
-           installed_kw_2007 +
-           installed_kw_2008 +
-           installed_kw_2009 +
-           installed_kw_2010 +
-           installed_kw_2011 +
-           installed_kw_2012 +
-           installed_kw_2013 +
-           installed_kw_2014 +
-           installed_kw_2015 +
-           installed_kw_2016 +
-           installed_kw_2017 +
-           installed_kw_2018 +
-           installed_kw_2019 +
-           installed_kw_2020 +
-           installed_kw_2021 +
-           installed_kw_2022) %>%
+  mutate(kw_tot = 
+           kw_b2005+
+           kw_2005 +
+           kw_2006 +
+           kw_2007 +
+           kw_2008 +
+           kw_2009 +
+           kw_2010 +
+           kw_2011 +
+           kw_2012 +
+           kw_2013 +
+           kw_2014 +
+           kw_2015 +
+           kw_2016 +
+           kw_2017 +
+           kw_2018 +
+           kw_2019 +
+           kw_2020 +
+           kw_2021 +
+           kw_2022) %>%
   st_drop_geometry()
 
 cantons_kw_installed <- left_join(cantons, cantons_kw_installed_nongeo, by=c("KANTONSNUM" = "knr"))
@@ -288,97 +458,481 @@ cantons_kw_installed <- left_join(cantons, cantons_kw_installed_nongeo, by=c("KA
 
 ```{r}
 ch_kw_installed <- ch %>%
-  mutate(installed_kw_before2005 = sum(muns_kw_installed$installed_kw_before2005, na.rm = TRUE),
-            installed_kw_2005 = sum(muns_kw_installed$installed_kw_2005, na.rm = TRUE),
-            installed_kw_2006 = sum(muns_kw_installed$installed_kw_2006, na.rm = TRUE),
-            installed_kw_2007 = sum(muns_kw_installed$installed_kw_2007, na.rm = TRUE),
-            installed_kw_2008 = sum(muns_kw_installed$installed_kw_2008, na.rm = TRUE),
-            installed_kw_2009 = sum(muns_kw_installed$installed_kw_2009, na.rm = TRUE),
-            installed_kw_2010 = sum(muns_kw_installed$installed_kw_2010, na.rm = TRUE),
-            installed_kw_2011 = sum(muns_kw_installed$installed_kw_2011, na.rm = TRUE),
-            installed_kw_2012 = sum(muns_kw_installed$installed_kw_2012, na.rm = TRUE),
-            installed_kw_2013 = sum(muns_kw_installed$installed_kw_2013, na.rm = TRUE),
-            installed_kw_2014 = sum(muns_kw_installed$installed_kw_2014, na.rm = TRUE),
-            installed_kw_2015 = sum(muns_kw_installed$installed_kw_2015, na.rm = TRUE),
-            installed_kw_2016 = sum(muns_kw_installed$installed_kw_2016, na.rm = TRUE),
-            installed_kw_2017 = sum(muns_kw_installed$installed_kw_2017, na.rm = TRUE),
-            installed_kw_2018 = sum(muns_kw_installed$installed_kw_2018, na.rm = TRUE),
-            installed_kw_2019 = sum(muns_kw_installed$installed_kw_2019, na.rm = TRUE),
-            installed_kw_2020 = sum(muns_kw_installed$installed_kw_2020, na.rm = TRUE),
-            installed_kw_2021 = sum(muns_kw_installed$installed_kw_2021, na.rm = TRUE),
-            installed_kw_2022 = sum(muns_kw_installed$installed_kw_2022, na.rm = TRUE)) %>%
-  mutate(installed_kw_total = 
-           installed_kw_before2005+
-           installed_kw_2005 +
-           installed_kw_2006 +
-           installed_kw_2007 +
-           installed_kw_2008 +
-           installed_kw_2009 +
-           installed_kw_2010 +
-           installed_kw_2011 +
-           installed_kw_2012 +
-           installed_kw_2013 +
-           installed_kw_2014 +
-           installed_kw_2015 +
-           installed_kw_2016 +
-           installed_kw_2017 +
-           installed_kw_2018 +
-           installed_kw_2019 +
-           installed_kw_2020 +
-           installed_kw_2021 +
-           installed_kw_2022) %>%
-  select(NAME, EINWOHNERZ, starts_with("installed_kw"))
+  mutate(kw_b2005 = sum(muns_kw_installed$kw_b2005, na.rm = TRUE),
+            kw_2005 = sum(muns_kw_installed$kw_2005, na.rm = TRUE),
+            kw_2006 = sum(muns_kw_installed$kw_2006, na.rm = TRUE),
+            kw_2007 = sum(muns_kw_installed$kw_2007, na.rm = TRUE),
+            kw_2008 = sum(muns_kw_installed$kw_2008, na.rm = TRUE),
+            kw_2009 = sum(muns_kw_installed$kw_2009, na.rm = TRUE),
+            kw_2010 = sum(muns_kw_installed$kw_2010, na.rm = TRUE),
+            kw_2011 = sum(muns_kw_installed$kw_2011, na.rm = TRUE),
+            kw_2012 = sum(muns_kw_installed$kw_2012, na.rm = TRUE),
+            kw_2013 = sum(muns_kw_installed$kw_2013, na.rm = TRUE),
+            kw_2014 = sum(muns_kw_installed$kw_2014, na.rm = TRUE),
+            kw_2015 = sum(muns_kw_installed$kw_2015, na.rm = TRUE),
+            kw_2016 = sum(muns_kw_installed$kw_2016, na.rm = TRUE),
+            kw_2017 = sum(muns_kw_installed$kw_2017, na.rm = TRUE),
+            kw_2018 = sum(muns_kw_installed$kw_2018, na.rm = TRUE),
+            kw_2019 = sum(muns_kw_installed$kw_2019, na.rm = TRUE),
+            kw_2020 = sum(muns_kw_installed$kw_2020, na.rm = TRUE),
+            kw_2021 = sum(muns_kw_installed$kw_2021, na.rm = TRUE),
+            kw_2022 = sum(muns_kw_installed$kw_2022, na.rm = TRUE)) %>%
+  mutate(kw_tot = 
+           kw_b2005 +
+           kw_2005 +
+           kw_2006 +
+           kw_2007 +
+           kw_2008 +
+           kw_2009 +
+           kw_2010 +
+           kw_2011 +
+           kw_2012 +
+           kw_2013 +
+           kw_2014 +
+           kw_2015 +
+           kw_2016 +
+           kw_2017 +
+           kw_2018 +
+           kw_2019 +
+           kw_2020 +
+           kw_2021 +
+           kw_2022) %>%
+  select(NAME, EINWOHNERZ, starts_with("kw"))
 ```
 
 ```{r}
-# potential
+# solar energy potential
 potential_muns <- potentials %>%
   inner_join(muns, by=c("MunicipalityNumber" = "BFS_NUMMER")) %>%
   select(MunicipalityNumber, 
          knr,
          Scenario1_RoofsOnly_PotentialSolarElectricity_GWh,
-         Scenario2_RoofsOnly_PotentialSolarElectricity_GWh,
-         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh,
-         Scenario4_RoofsFacades_PotentialSolarElectricity_GWh)
+         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh) %>%
+  rename(p_rf = Scenario1_RoofsOnly_PotentialSolarElectricity_GWh,
+         p_rf_fac = Scenario3_RoofsFacades_PotentialSolarElectricity_GWh)
 
 potential_cantons <- potential_muns %>%
   group_by(knr) %>%
-  summarize(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh = sum(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh),
-            Scenario2_RoofsOnly_PotentialSolarElectricity_GWh = sum(Scenario2_RoofsOnly_PotentialSolarElectricity_GWh),
-            Scenario3_RoofsFacades_PotentialSolarElectricity_GWh = sum(Scenario3_RoofsFacades_PotentialSolarElectricity_GWh),
-            Scenario4_RoofsFacades_PotentialSolarElectricity_GWh = sum(Scenario4_RoofsFacades_PotentialSolarElectricity_GWh))
+  summarize(p_rf = sum(p_rf),
+            p_rf_fac = sum(p_rf_fac))
 
 muns_installed_pot <- left_join(muns_kw_installed, potential_muns, by=c("BFS_NUMMER" = "MunicipalityNumber"))
 cantons_installed_pot <- left_join(cantons_kw_installed, potential_cantons, by=c("KANTONSNUM" = "knr"))
 
 ch_installed_pot <- ch_kw_installed %>%
-  mutate(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario1_RoofsOnly_PotentialSolarElectricity_GWh),
-         Scenario2_RoofsOnly_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario2_RoofsOnly_PotentialSolarElectricity_GWh),
-         Scenario3_RoofsFacades_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario3_RoofsFacades_PotentialSolarElectricity_GWh),
-         Scenario4_RoofsFacades_PotentialSolarElectricity_GWh = sum(potential_muns$Scenario4_RoofsFacades_PotentialSolarElectricity_GWh))
+  mutate(p_rf = sum(potential_muns$p_rf),
+         p_rf_fac = sum(potential_muns$p_rf_fac))
 ```
 
+```{r}
+# Joining the potential to the typology
+typology_unproc <- left_join(typology_unproc, potentials, by=c("GDE_NO" = "MunicipalityNumber"))
+
+potential_typ <- typology_unproc %>%
+  group_by(TYP) %>%
+  summarize(p_rf = sum(Scenario1_RoofsOnly_PotentialSolarElectricity_GWh, na.rm=T),
+            p_rf_fac = sum(Scenario3_RoofsFacades_PotentialSolarElectricity_GWh, na.rm=T)
+            ) %>%
+  st_drop_geometry()
+
+typ_installed_pot <- left_join(typ_kw_installed, potential_typ, by="TYP")
+```
+
+```{r}
+# German --> English
+type_names <- c("Big Centers", "Secondary Centers Of Big Centers", "Crown Big Centers", "Medium Centers", "Crown Medium Centers", "Small Centers", "Peri-urban Rural Communes", "Agricultural Communes", "Tourist Communes")
+typ_installed_pot$name <- type_names
+
+ch_installed_pot$NAME <- "Switzerland"
+
+ch_installed_pot <- ch_installed_pot %>%
+  rename(name = NAME)
+```
+
+```{r}
+# kW --> kWh
+# TO CLARIFY: what does this mean?
+factor <- 950
+
+ch_gwh_pot <- ch_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)
+
+cantons_gwh_pot <- cantons_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)
+
+typ_gwh_pot <- typ_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)
+
+muns_gwh_pot <- muns_installed_pot %>%
+  mutate(gwh_b2005 = kw_b2005 * factor / 1e6,
+         gwh_2005 = kw_2005 * factor / 1e6,
+         gwh_2006 = kw_2006 * factor / 1e6,
+         gwh_2007 = kw_2007 * factor / 1e6,
+         gwh_2008 = kw_2008 * factor / 1e6,
+         gwh_2009 = kw_2009 * factor / 1e6,
+         gwh_2010 = kw_2010 * factor / 1e6,
+         gwh_2011 = kw_2011 * factor / 1e6,
+         gwh_2012 = kw_2012 * factor / 1e6,
+         gwh_2013 = kw_2013 * factor / 1e6,
+         gwh_2014 = kw_2014 * factor / 1e6,
+         gwh_2015 = kw_2015 * factor / 1e6,
+         gwh_2016 = kw_2016 * factor / 1e6,
+         gwh_2017 = kw_2017 * factor / 1e6,
+         gwh_2018 = kw_2018 * factor / 1e6,
+         gwh_2019 = kw_2019 * factor / 1e6,
+         gwh_2020 = kw_2020 * factor / 1e6,
+         gwh_2021 = kw_2021 * factor / 1e6,
+         gwh_2022 = kw_2022 * factor / 1e6,
+         gwh_tot = kw_tot * factor / 1e6)  
+```
+
+```{r}
+library(pxR)
+
+# political orientation
+raw_data <- (read.px("unprocessed_data/px-x-1702020000_105.px"))
+
+data_df <- as.data.frame(raw_data)
+
+# filtering data, transformation to long format
+data_long <- data_df %>%
+  filter(Jahr == 2019 & !grepl(">>", Bezirk........Gemeinde.........) & Ergebnisse == "Parteistärke in %") %>%
+  mutate(Gemeinde = substr(Bezirk........Gemeinde........., start=7, stop=1000000)) %>%
+  select(Partei, value, Gemeinde)
+
+# pivoting to wide format
+data_wide <- data_long %>% pivot_wider (
+  names_from = Partei, values_from=value
+)
+
+# replacing NA with 0
+data_wide[is.na(data_wide)] <- 0
+
+# Calculation of score, according to http://www.endlich-18.ch/parteien.html
+# 1 --> right-wing, -1 --> left wing
+Lega = 1
+SVP = 0.7
+SD = 0.7
+MCR = 0.5
+BDP = 0.4
+EDU = 0.4
+FDP = 0.4
+LPS = 0.3
+CVP = 0
+GLP = -0.3
+EVP = -0.4
+LdU = -0.6
+Sol = -0.7
+FGA = -0.7
+SP = -0.8
+CSP = -0.8
+GPS = -0.9
+POCH = -0.9
+PdA = -1
+
+factors <- c(Lega, SVP, SD, MCR, BDP, EDU, FDP, LPS, CVP, GLP, EVP, LdU, Sol, FGA, SP, CSP, GPS, POCH, PdA)
+
+relevant_parties <- data_wide %>%
+  select("Lega", "SVP", "SD", "MCR", "BDP", "EDU", "FDP", "LPS", "CVP", "GLP", "EVP", "LdU", "Sol.", "FGA", "SP", "CSP", "GPS", "POCH", "PdA")
+
+scores = c()
+
+for (i in 1:nrow(relevant_parties)) {
+  fractions = unname(unlist(relevant_parties[i,]))
+  
+  score = fractions %*% factors
+  
+  scores[i] <- score
+}
+
+muns_political <- data_wide %>%
+  mutate(score = (2 * (scores - min(scores)) / (max(scores) - min(scores))) - 1) %>%
+  select(Gemeinde, score)
+
+hist(muns_political$score)
+```
+
+```{r}
+# making names comparable and accounting for municipality fusions since 2019
+muns_political[muns_political$Gemeinde == "Mühlethurnen",1] <- "Thurnen"
+muns_political[muns_political$Gemeinde == "Kirchenthurnen",1] <- "Thurnen"
+muns_political[muns_political$Gemeinde == "Lohnstorf",1] <- "Thurnen"
+muns_political[muns_political$Gemeinde == "Villaz-Saint-Pierre",1] <- "Villaz"
+muns_political[muns_political$Gemeinde == "La Folliaz",1] <- "Villaz"
+muns_political[muns_political$Gemeinde == "Corserey",1] <- "Prez"
+muns_political[muns_political$Gemeinde == "Noréaz",1] <- "Prez"
+muns_political[muns_political$Gemeinde == "Prez-vers-Noréaz",1] <- "Prez"
+muns_political[muns_political$Gemeinde == "Arconciel",1] <- "Bois-d'Amont"
+muns_political[muns_political$Gemeinde == "Ependes (FR)",1] <- "Bois-d'Amont"
+muns_political[muns_political$Gemeinde == "Senèdes",1] <- "Bois-d'Amont"
+muns_political[muns_political$Gemeinde == "Gänsbrunnen",1] <- "Welschenrohr-Gänsbrunnen"
+muns_political[muns_political$Gemeinde == "Welschenrohr",1] <- "Welschenrohr-Gänsbrunnen"
+muns_political[muns_political$Gemeinde == "Rüte",1] <- "Schwende-Rüte"
+muns_political[muns_political$Gemeinde == "Schwende",1] <- "Schwende-Rüte"
+muns_political[muns_political$Gemeinde == "Donat",1] <- "Muntogna da Schons"
+muns_political[muns_political$Gemeinde == "Casti-Wergenstein",1] <- "Muntogna da Schons"
+muns_political[muns_political$Gemeinde == "Mathon",1] <- "Muntogna da Schons"
+muns_political[muns_political$Gemeinde == "Lohn (GR)",1] <- "Muntogna da Schons"
+muns_political[muns_political$Gemeinde == "La Punt-Chamues-ch",1] <- "La Punt Chamues-ch"
+muns_political[muns_political$Gemeinde == "Klosters-Serneus",1] <- "Klosters"
+muns_political[muns_political$Gemeinde == "Bözen",1] <- "Böztal"
+muns_political[muns_political$Gemeinde == "Effingen",1] <- "Böztal"
+muns_political[muns_political$Gemeinde == "Elfingen",1] <- "Böztal"
+muns_political[muns_political$Gemeinde == "Hornussen",1] <- "Böztal"
+muns_political[muns_political$Gemeinde == "Herznach",1] <- "Herznach-Ueken"
+muns_political[muns_political$Gemeinde == "Ueken",1] <- "Herznach-Ueken"
+muns_political[muns_political$Gemeinde == "Bad Zurzach",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Baldingen",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Böbikon",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Kaiserstuhl",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Rekingen (AG)",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Rietheim",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Rümikon",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Wislikofen",1] <- "Zurzach"
+muns_political[muns_political$Gemeinde == "Croglio",1] <- "Tresa"
+muns_political[muns_political$Gemeinde == "Monteggio",1] <- "Tresa"
+muns_political[muns_political$Gemeinde == "Ponte Tresa",1] <- "Tresa"
+muns_political[muns_political$Gemeinde == "Sessa",1] <- "Tresa"
+muns_political[muns_political$Gemeinde == "Maroggia",1] <- "Val Mara"
+muns_political[muns_political$Gemeinde == "Melano",1] <- "Val Mara"
+muns_political[muns_political$Gemeinde == "Rovio",1] <- "Val Mara"
+muns_political[muns_political$Gemeinde == "Brione (Verzasca)",1] <- "Verzasca"
+muns_political[muns_political$Gemeinde == "Corippo",1] <- "Verzasca"
+muns_political[muns_political$Gemeinde == "Frasco",1] <- "Verzasca"
+muns_political[muns_political$Gemeinde == "Sonogno",1] <- "Verzasca"
+muns_political[muns_political$Gemeinde == "Vogorno",1] <- "Verzasca"
+muns_political[muns_political$Gemeinde == "Apples",1] <- "Hautemorges"
+muns_political[muns_political$Gemeinde == "Bussy-Chardonney",1] <- "Hautemorges"
+muns_political[muns_political$Gemeinde == "Cottens (VD)",1] <- "Hautemorges"
+muns_political[muns_political$Gemeinde == "Pampigny",1] <- "Hautemorges"
+muns_political[muns_political$Gemeinde == "Reverolle",1] <- "Hautemorges"
+muns_political[muns_political$Gemeinde == "Sévery",1] <- "Hautemorges"
+muns_political[muns_political$Gemeinde == "Crans-près-Céligny",1] <- "Crans (VD)"
+muns_political[muns_political$Gemeinde == "Blonay",1] <- "Blonay - Saint-Légier"
+muns_political[muns_political$Gemeinde == "Saint-Légier-La Chiésaz",1] <- "Blonay - Saint-Légier"
+muns_political[muns_political$Gemeinde == "Bagnes",1] <- "Val de Bagnes"
+muns_political[muns_political$Gemeinde == "Vollèges",1] <- "Val de Bagnes"
+muns_political[muns_political$Gemeinde == "Miège",1] <- "Noble-Contrée"
+muns_political[muns_political$Gemeinde == "Venthône",1] <- "Noble-Contrée"
+muns_political[muns_political$Gemeinde == "Veyras",1] <- "Noble-Contrée"
+muns_political[muns_political$Gemeinde == "Damphreux",1] <- "Damphreux-Lugnez"
+muns_political[muns_political$Gemeinde == "Lugnez",1] <- "Damphreux-Lugnez"
+
+# Group by name and average score
+muns_political_corr <- muns_political %>%
+  dplyr::group_by(Gemeinde) %>%
+  dplyr::summarize(pol_or = mean(score))
+```
+
+```{r}
+#join with municipalities and cantons
+muns_gwh_pot_pol <- inner_join(muns_gwh_pot, muns_political_corr, by = c("name" = "Gemeinde"))
+
+# durchschnitt gewichtet nach einwohnerzahl für aggregation auf kantonsebene
+cantons_pol <- muns_gwh_pot_pol %>%
+  left_join(cantons %>% st_drop_geometry(), by=c("knr.x" = "KANTONSNUM")) %>%
+  dplyr::group_by(knr.x) %>%
+  dplyr::summarize(pol_or_unnorm = sum(pop.x / pop.y * pol_or)) %>%
+  mutate(pol_or = (2 * (pol_or_unnorm - min(pol_or_unnorm)) / (max(pol_or_unnorm) - min(pol_or_unnorm))) - 1) %>%
+  select(knr.x, pol_or) %>%
+  st_drop_geometry()
+
+cantons_gwh_pot_pol <- inner_join(cantons_gwh_pot, cantons_pol, by=c("KANTONSNUM" = "knr.x"))
+```
+
+```{r}
+# assigning categorical values to numerical political orientation
+muns_gwh_pot_pol_cat <- muns_gwh_pot_pol %>%
+  mutate(pol_or_cat = "very right-leaning") %>%
+  mutate(pol_or_cat = ifelse(pol_or < -0.5, "very left-leaning", 
+                             ifelse(pol_or < -0.25, "left-leaning",
+                                    ifelse(pol_or < 0.25, "centrist",
+                                           ifelse(pol_or < 0.5, "right-leaning", pol_or_cat)))))
+
+cantons_gwh_pot_pol_cat <- cantons_gwh_pot_pol %>%
+  mutate(pol_or_cat = "very right-leaning") %>%
+  mutate(pol_or_cat = ifelse(pol_or < -0.5, "very left-leaning", 
+                             ifelse(pol_or < -0.25, "left-leaning",
+                                    ifelse(pol_or < 0.25, "centrist",
+                                           ifelse(pol_or < 0.5, "right-leaning", pol_or_cat)))))
+```
+
+```{r}
+# Fraction of owned houses
+
+# Loading data from cities, districts and cantons
+own_cit <- read.csv("unprocessed_data/wohneigentumsquote/stadt.csv")
+own_dist <- read.csv("unprocessed_data/wohneigentumsquote/bezirk.csv")
+own_cant <- read.csv("unprocessed_data/wohneigentumsquote/kanton.csv")
+
+# additionally extracting Bezirksnummer
+muns_bez <- muns_unproc %>%
+  # removing municipalities in Liechtenstein
+  filter(BFS_NUMMER < 7000) %>%
+  dplyr::group_by(BFS_NUMMER) %>%
+  dplyr::summarize(name=max(NAME), knr = max(KANTONSNUM), beznr = max(BEZIRKSNUM), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
+```
+
+```{r}
+# joining the data 
+muns_bez_own_raw <- muns_bez %>%
+  left_join(own_cit, by=c("BFS_NUMMER" = "bfs_num")) %>%
+  left_join(own_dist, by=c("beznr" = "bez_num")) %>%
+  left_join(own_cant, by=c("knr" = "kanton_num")) %>%
+  select(BFS_NUMMER, name.x, wohneigentumsquote_stadt, wohneigentumsquote_bezirk, wohneigentumsquote_kanton) %>%
+  st_drop_geometry() %>%
+  # priority: city --> district --> canton
+  mutate(own_frac = ifelse(!is.na(wohneigentumsquote_stadt), wohneigentumsquote_stadt,
+                                     ifelse(!is.na(wohneigentumsquote_bezirk), wohneigentumsquote_bezirk,
+                                     wohneigentumsquote_kanton))) %>%
+  select(BFS_NUMMER, own_frac)
+
+cantons_own_raw <- cantons %>%
+  inner_join(own_cant, by=c("KANTONSNUM" = "kanton_num")) %>%
+  dplyr::rename(own_frac = wohneigentumsquote_kanton) %>%
+  st_drop_geometry() %>%
+  select(KANTONSNUM, own_frac)
+```
+
+```{r}
+# joining property information to rest of the data
+muns_gwh_pot_pol_cat_own <- inner_join(muns_gwh_pot_pol_cat, muns_bez_own_raw, by="BFS_NUMMER")
+cantons_gwh_pot_pol_cat_own <- inner_join(cantons_gwh_pot_pol_cat, cantons_own_raw, by="KANTONSNUM")
+```
+
+```{r}
+# Saving cantons and muns as point data
+muns_pol_point <- muns_gwh_pot_pol_cat_own %>%
+  select(BFS_NUMMER, name, pol_or) %>%
+  mutate(gkode = st_coordinates(st_point_on_surface(geometry))[,1],
+         gkodn = st_coordinates(st_point_on_surface(geometry))[,2]) %>%
+  st_drop_geometry() %>%
+  st_as_sf(., coords=c("gkode", "gkodn"), crs=2056)
+
+cantons_pol_point <- cantons_gwh_pot_pol_cat_own %>%
+  select(KANTONSNUM, name, pol_or) %>%
+  mutate(gkode = st_coordinates(st_point_on_surface(geometry))[,1],
+         gkodn = st_coordinates(st_point_on_surface(geometry))[,2]) %>%
+  st_drop_geometry() %>%
+  st_as_sf(., coords=c("gkode", "gkodn"), crs=2056)
+
+st_write(muns_pol_point, "processed_data/point_data/municipalities_point.shp", append=F)
+st_write(cantons_pol_point, "processed_data/point_data/cantons_point.shp", append=F)
+```
+
+```{r}
+# simplfiying geometry (sf)
+#muns_installed_pot_simplified <- st_simplify(muns_gwh_pot, preserveTopology = T, dTolerance=250)
+#cantons_installed_pot_simplified <- st_simplify(cantons_gwh_pot, preserveTopology = T, dTolerance=250)
+#typ_installed_pot_simplified <- st_simplify(typ_gwh_pot, preserveTopology = T, dTolerance=250)
+#ch_installed_pot_simplified <- st_simplify(ch_gwh_pot, preserveTopology = T, dTolerance=250)
+
+# simplifying geometry (rmapshaper)
+library(rmapshaper)
+muns_installed_pot_simplified <- ms_simplify(muns_gwh_pot_pol_cat_own, keep_shapes = T, keep=0.005)
+cantons_installed_pot_simplified <- ms_simplify(cantons_gwh_pot_pol_cat_own, keep_shapes = T, keep=0.01)
+typ_installed_pot_simplified <- ms_simplify(typ_gwh_pot, keep_shapes = T, keep=0.01)
+ch_installed_pot_simplified <- ms_simplify(ch_gwh_pot, keep_shapes = T, keep=0.01)
+```
+
+```{r}
+# Load and simplify lakes
+lakes_unsimp <- st_zm(read_sf("unprocessed_data/lakes/lakes.shp"))
+
+lakes_simp <- ms_simplify(lakes_unsimp, keep_shapes = T, keep=0.001)
+```
 
 ```{r}
 ggplot() +
-  geom_sf(data= muns_installed_pot, aes(fill=installed_kw_total/pop), lwd=0.1) +
+  geom_sf(data= muns_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.1) +
+  geom_sf(data=lakes_simp, mapping=aes(), fill="blue") +
   theme_void()
 ```
 
 ```{r}
 ggplot() +
-  geom_sf(data= muns_installed_pot, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
+  geom_sf(data= typ_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.01) +
+  theme_void()
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data= cantons_installed_pot_simplified, aes(fill=gwh_tot/p_rf_fac), lwd=0.1) +
   theme_void()
 ```
 
 ```{r}
-ggplot() +
-  geom_sf(data= cantons_installed_pot, aes(fill=installed_kw_total/pop), lwd=0.1) +
-  theme_void()
+# Saving spatial data as shapefiles
+st_write(muns_installed_pot_simplified, "processed_data/municipalities/municipalities.shp", append=F)
+st_write(cantons_installed_pot_simplified, "processed_data/cantons/cantons.shp", append=F)
+st_write(typ_installed_pot_simplified, "processed_data/typology/typology.shp", append=F)
+st_write(ch_installed_pot_simplified, "processed_data/switzerland/switzerland.shp", append=F)
+st_write(lakes_simp, "processed_data/lakes/lakes.shp", append=F)
 ```
 
 ```{r}
-ggplot() +
-  geom_sf(data= cantons_installed_pot, aes(fill=Scenario1_RoofsOnly_PotentialSolarElectricity_GWh), lwd=0.01) +
-  theme_void()
+# Check whether data was exported correctly
+processed_muns <- st_transform(st_read("processed_data/municipalities/municipalities.shp"), crs=4326)
+processed_cantons <-  st_transform(st_read("processed_data/cantons/cantons.shp"), crs=4326)
+processed_typ <-  st_transform(st_read("processed_data/typology/typology.shp"), crs=4326)
+processed_ch <-  st_transform(st_read("processed_data/switzerland/switzerland.shp"), crs=4326)
 ```
+

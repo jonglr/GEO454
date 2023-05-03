@@ -1,0 +1,125 @@
+---
+title: "Untitled"
+author: "Joris Senn"
+date: "3/16/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(scales)
+```
+
+```{r}
+muns <- st_transform(st_read("../processed_data/municipalities/municipalities.shp"), crs=4326)
+cantons <-  st_transform(st_read("../processed_data/cantons/cantons.shp"), crs=4326)
+typ <-  st_transform(st_read("../processed_data/typology/typology.shp"), crs=4326)
+ch <-  st_transform(st_read("../processed_data/switzerland/switzerland.shp"), crs=4326)
+```
+
+```{r}
+st_drop_geometry(ch)[1, "p_rf_fac"]
+```
+
+
+```{r}
+years <- seq(2004, 2022)
+
+wadi <- muns %>% 
+  filter(name == "Wädenswil") %>%
+  select(starts_with("gwh") & !ends_with("tot")) %>%
+  st_drop_geometry()
+
+zh <- cantons %>% 
+  filter(name == "Zürich") %>%
+  select(starts_with("gwh") & !ends_with("tot")) %>%
+  st_drop_geometry()
+
+to_visualize <- data.frame(years = years, gwh = cumsum(c(wadi[1,])), name="Wädenswil")
+
+to_visualize <- rbind(to_visualize, data.frame(years = years, gwh = cumsum(c(zh[1,])), name="Zürich"))
+
+ggplot() +
+  geom_line(to_visualize, mapping=aes(x=years, y=gwh, col=name))
+```
+
+```{r}
+ggplot() +
+  geom_point(data=muns, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac), size=0.2) +
+  labs(title = "Political orientation vs exhaustion of PV potential at municipality level", x="Political orientation", y="Exhaustion [%]", col="") +
+  scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+  scale_x_continuous(breaks=c(-1, 0, 1),
+                     labels=c("left-leaning", "centrist", "right-leaning")) +
+  theme_classic()
+```
+
+```{r}
+library(extrafont)
+library(ggtext)
+#font_import("Roboto")
+#loadfonts(device = "all")
+
+ggplot() +
+  geom_point(data=muns, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac), size=0.2) +
+  labs(title = "Home ownership rate vs exhaustion of PV potential at municipality level", x="Home ownership rate [%]", y="Exhaustion [%]", col="") +
+  scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+  scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+  theme_classic() +
+  theme(text=element_text(family="Roboto", face="bold", size=12))
+  #theme(text=ggtext::element_markdown(family="Courier New", face="bold", size=12))
+```
+
+```{r}
+# old UI
+ui <- fluidPage(theme = shinytheme("sandstone"),
+  fluidRow(
+    column(2,
+           #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
+           p(),
+           actionButton(
+             inputId = "reset",
+             label = "Clear selection"
+           ),
+           p(),
+           div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
+           # choosing municipality type to be rendered in the plot
+           selectInput(
+             inputId = "municipality_type",
+             label = "Municipality types",
+             choices = as.character(typ$name),
+             selected = as.character(typ$name)[1],
+             multiple = T
+           ),
+           # choosing municipality type to be rendered in the plot
+           selectInput(
+             inputId = "canton",
+             label = "Cantons",
+             choices = as.character(cantons$name),
+             selected = as.character(cantons$name)[1],
+             multiple = T
+           ),
+           radioButtons(inputId="add_info", label="Additional information",
+                        choices = c("Solar energy in Switzerland" = "def", 
+                                    "Political orientation" = "pol", 
+                                    "Home ownership" = "prop"), selected = "def")
+    ),
+    column(10, leafletOutput("map"))
+  ),
+  fluidRow(
+    column(6,plotOutput("plot")),
+    # conditionalPanel with contents depending on the radio button
+    column(6,
+           conditionalPanel("input.add_info == 'def'", "Description and instruction how to use the map, info for whole Switzerland / currently selected canton"),
+           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
+           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot")))
+  )
+)
+```
+

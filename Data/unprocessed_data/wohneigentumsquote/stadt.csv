@@ -1,0 +1,163 @@
+﻿bfs_num,name,wohneigentumsquote_stadt
+2,Affoltern am Albis,0.291
+52,Bassersdorf,0.356
+53,Bülach,0.267
+62,Kloten,0.161
+66,Opfikon,0.158
+69,Wallisellen,0.261
+96,Regensdorf,0.25
+117,Hinwil,0.431
+118,Rüti (ZH),0.34
+121,Wetzikon (ZH),0.317
+131,Adliswil,0.179
+138,Richterswil,0.432
+141,Thalwil,0.215
+154,Küsnacht (ZH),0.338
+155,Männedorf,0.381
+156,Meilen,0.369
+158,Stäfa,0.413
+161,Zollikon,0.284
+177,Pfäffikon,0.404
+191,Dübendorf,0.227
+198,Uster,0.327
+199,Volketswil,0.365
+230,Winterthur,0.236
+243,Dietikon,0.169
+247,Schlieren,0.172
+250,Urdorf,0.212
+261,Zürich,0.091
+293,Wädenswil,0.35
+295,Horgen,0.335
+296,Illnau-Effretikon,0.316
+306,Lyss,0.351
+329,Langenthal,0.334
+351,Bern,0.156
+355,Köniz,0.3
+356,Muri bei Bern,0.377
+361,Zollikofen,0.305
+362,Ittigen,0.326
+363,Ostermundigen,0.207
+371,Biel/Bienne,0.185
+404,Burgdorf,0.317
+546,Münchenbuchsee,0.361
+581,Interlaken,0.267
+616,Münsingen,0.425
+768,Spiez,0.486
+861,Belp,0.374
+939,Steffisburg,0.427
+942,Thun,0.333
+1024,Emmen,0.231
+1054,Ebikon,0.311
+1058,Horw,0.363
+1059,Kriens,0.289
+1061,Luzern,0.146
+1103,Sursee,0.269
+1201,Altdorf (UR),0.318
+1301,Einsiedeln,0.43
+1322,Freienbach,0.324
+1362,Arth,0.334
+1372,Schwyz,0.361
+1407,Sarnen,0.443
+1509,Stans,0.327
+1630,Glarus Nord,0.446
+1632,Glarus,0.468
+1701,Baar,0.325
+1702,Cham,0.325
+1707,Risch,0.273
+1708,Steinhausen,0.319
+1711,Zug,0.237
+2125,Bulle,0.268
+2196,Fribourg,0.142
+2228,Villars-sur-Glâne,0.287
+2546,Grenchen,0.361
+2581,Olten,0.235
+2601,Solothurn,0.246
+2701,Basel,0.129
+2703,Riehen,0.326
+2761,Aesch (BL),0.408
+2762,Allschwil,0.285
+2763,Arlesheim,0.387
+2765,Binningen,0.391
+2766,Birsfelden,0.138
+2769,Münchenstein,0.394
+2770,Muttenz,0.389
+2771,Oberwil (BL),0.476
+2773,Reinach (BL),0.467
+2829,Liestal,0.367
+2831,Pratteln,0.304
+2937,Neuhausen am Rheinfall,0.267
+2939,Schaffhausen,0.323
+3001,Herisau,0.345
+3203,St. Gallen,0.173
+3215,Rorschach,0.179
+3251,Altstätten,0.452
+3271,Buchs (SG),0.317
+3340,Rapperswil-Jona,0.357
+3402,Flawil,0.417
+3408,Uzwil,0.463
+3427,Wil (SG),0.295
+3443,Gossau (SG),0.352
+3787,St. Moritz,0.287
+3851,Davos,0.3
+3901,Chur,0.263
+4001,Aarau,0.3
+4012,Suhr,0.356
+4021,Baden,0.347
+4040,Spreitenbach,0.244
+4045,Wettingen,0.349
+4082,Wohlen (AG),0.42
+4095,Brugg,0.393
+4201,Lenzburg,0.329
+4254,Möhlin,0.508
+4258,Rheinfelden,0.328
+4280,Oftringen,0.387
+4289,Zofingen,0.355
+4401,Arbon,0.322
+4436,Romanshorn,0.31
+4461,Amriswil,0.367
+4566,Frauenfeld,0.333
+4671,Kreuzlingen,0.314
+4946,Weinfelden,0.333
+5002,Bellinzona,0.381
+5113,Locarno,0.223
+5192,Lugano,0.282
+5250,Chiasso,0.181
+5254,Mendrisio,0.406
+5401,Aigle,0.239
+5583,Crissier,0.267
+5586,Lausanne,0.082
+5589,Prilly,0.13
+5590,Pully,0.293
+5591,Renens (VD),0.105
+5624,Bussigny,0.257
+5635,Ecublens (VD),0.151
+5642,Morges,0.173
+5721,Gland,0.3
+5724,Nyon,0.207
+5822,Payerne,0.257
+5886,Montreux,0.27
+5889,La Tour-de-Peilz,0.254
+5890,Vevey,0.098
+5938,Yverdon-les-Bains,0.183
+6002,Brig-Glis,0.496
+6136,Martigny,0.379
+6153,Monthey,0.418
+6248,Sierre,0.461
+6266,Sion,0.376
+6297,Visp,0.444
+6300,Zermatt,0.352
+6421,La Chaux-de-Fonds,0.228
+6436,Le Locle,0.289
+6458,Neuchâtel,0.187
+6608,Carouge (GE),0.097
+6612,Chêne-Bougeries,0.285
+6621,Genève,0.065
+6623,Le Grand-Saconnex,0.225
+6628,Lancy,0.141
+6630,Meyrin,0.157
+6631,Onex,0.145
+6633,Plan-les-Ouates,0.437
+6640,Thônex,0.317
+6643,Vernier,0.148
+6644,Versoix,0.276
+6711,Delémont,0.329
