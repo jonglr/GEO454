@@ -27,7 +27,7 @@ returnPlot <- function(dataframe) {
 returnPolPlot <- function() {
   returnedPlot <- ggplot() +
     geom_point(data=muns, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac, col="Swiss municipalities"), size=0.2) +
-    labs(title = "Political orientation vs exhaustion of PV potential", x="Political orientation", y="Exhaustion [%]", col="") +
+    labs(title = "Political orientation vs exhaustion of PV potential at municipality level", x="Political orientation", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(breaks=c(-1, 0, 1),
                        labels=c("left-leaning", "centrist", "right-leaning")) +
@@ -106,6 +106,15 @@ labels_cantons <- sprintf(
   round(cantons$own_frac * 100, 1)
 ) %>% lapply(htmltools::HTML)
 
+infobox <- HTML("<div style='text-align: justify;'><h3><strong>Exhaustion of solar energy potential in Switzerland</strong></h3><br/>
+                The map shows the exhaustion of photovoltaic potential for every canton of Switzerland. A canton may be selected to reveal the municipalities
+                within the canton. The municipalities can once again be selected, which adds them to the plot on the top right and allows for the comparison of the
+                development of the exhaustion over time between different municipalities. For additional comparisons, the exhaustion of cantons and municipality 
+                types may be added to the plot via the boxes in the bottom right panel. Elements may be removed from the plot through the clear selection button.
+                <br/><br/>Additional information in the form of two socioeconomic variables may be displayed by selecting the respective radio button on the bottom 
+                right panel, which produces a scatter plot where the municipalities of the currently selected canton are highlighted.
+                </div>")
+
 years <- seq(2004, 2022)
 
 # height 400 --> 7.5, height 600 --> 8, height 800 --> 8.5
@@ -118,53 +127,48 @@ if (size == 400){
 }
 
 ui <- fluidPage(theme = shinytheme("sandstone"),
-                tags$head(tags$style(HTML("#controlPanel {
-                                          background-color: white;
-                                          padding-left: 10px;
-                                          }"))),
   fluidRow(
-    column(9,
-           leafletOutput("map", height=size),
-           absolutePanel(id = "controlPanel", fixed=F, width=200, top=0, right=-30,
-                         #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
-                         p(),
-                         actionButton(
-                           inputId = "reset",
-                           label = "Clear selection"
-                         ),
-                         p(),
-                         div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
-                         # choosing municipality type to be rendered in the plot
-                         pickerInput(
-                           inputId = "municipality_type",
-                           label = "Municipality types",
-                           choices = as.character(typ$name),
-                           options = list(
-                             `selected-text-format` = "count > 1"), 
-                           multiple = T,
-                           width = 150
-                         ),
-                         # choosing municipality type to be rendered in the plot
-                         pickerInput(
-                           inputId = "canton",
-                           label = "Cantons",
-                           choices = as.character(cantons$name),
-                           options = list(
-                             `selected-text-format` = "count > 1"), 
-                           multiple = T,
-                           width = 150
-                         ),
-                         radioButtons(inputId="add_info", label="Additional information",
-                                      choices = c("Political orientation" = "pol", 
-                                                  "Home ownership" = "prop"), selected = "pol"))
-    ),
-    # the two plots displayed in a column on the right
-    column(3,
-           plotOutput("plot"),
-           # conditionalPanel with contents depending on the radio button
+    # conditionalPanel with contents depending on the radio button
+    column(5,
+           conditionalPanel("input.add_info == 'def'", infobox),
            conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
-           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot"))
+           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot"))),
+    column(5,plotOutput("plot")),
+    column(2,
+           #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
+           p(),
+           actionButton(
+             inputId = "reset",
+             label = "Clear selection"
+           ),
+           p(),
+           div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
+           # choosing municipality type to be rendered in the plot
+           pickerInput(
+             inputId = "municipality_type",
+             label = "Municipality types",
+             choices = as.character(typ$name),
+             options = list(
+               `selected-text-format` = "count > 1"), 
+             multiple = T
+           ),
+           # choosing municipality type to be rendered in the plot
+           pickerInput(
+             inputId = "canton",
+             label = "Cantons",
+             choices = as.character(cantons$name),
+             options = list(
+               `selected-text-format` = "count > 1"), 
+             multiple = T
+           ),
+           radioButtons(inputId="add_info", label="Additional information",
+                        choices = c("Instructions" = "def", 
+                                    "Political orientation" = "pol", 
+                                    "Home ownership" = "prop"), selected = "def")
     )
+  ),
+  fluidRow(
+    column(12, leafletOutput("map", height=size))
   )
 )
 
@@ -241,15 +245,14 @@ server <- function(input, output, session) {
                   labels = legend_labels_cantons,
                   opacity = 1, 
                   title=HTML("Exhaustion of<br>PV potential"), 
-                  position="bottomright"
+                  position="topright"
                   ) %>%
         addSearchOSM(options = searchOptions(collapsed = T, 
                                              autoCollapse=T, 
                                              hideMarkerOnCollapse = T, 
                                              tooltipLimit = 5,
                                              zoom=11,
-                                             firstTipSubmit = T,
-                                             position = "topleft")) %>%
+                                             firstTipSubmit = T)) %>%
         onRender("function(el, x) {$(el).css('background-color', 'white');}") %>%
         addPolygons(data=ch_simp,
                     group="ch",
@@ -430,7 +433,7 @@ server <- function(input, output, session) {
                           labels = legend_labels_muns,
                           opacity = 1, 
                           title=HTML("Exhaustion of<br>PV potential"), 
-                          position="bottomright"
+                          position="topright"
                           ) %>%
             addControl(actionButton(inputId = "back", label="", icon = icon("house"), width="40px")) %>%
             addPolygons(data=lakes, 
@@ -617,7 +620,7 @@ server <- function(input, output, session) {
                 labels = legend_labels_cantons, 
                 opacity = 1, 
                 title=HTML("Exhaustion of<br>PV potential"), 
-                position="bottomright"
+                position="topright"
                 ) %>%
       addPolygons(data=ch_simp,
                   group="ch",
