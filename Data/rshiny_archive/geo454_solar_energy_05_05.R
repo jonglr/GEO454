@@ -10,12 +10,11 @@ library(leaflet.extras)
 library(shinythemes)
 library(RColorBrewer)
 library(shinyWidgets)
-library(ggrepel)
 
 # Function that renders the plot with the evolution of the potential
 returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
-    geom_line(mapping=aes(x = years, y =installed/potential, col=name), linewidth=1.5) +
+    geom_line(mapping=aes(x = years, y =installed/potential, col=name), size=1.5) +
     labs(title = "Development of the exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
@@ -25,21 +24,14 @@ returnPlot <- function(dataframe) {
 }
 
 # Function that renders the plot with the political orientation
-returnPolPlot <- function(muns_soc, can_typ_soc) {
-  # generating hulls
-  hulls <- can_typ_soc %>%
-    group_by(name) %>%
-    slice(chull(pol_or, gwh_tot / p_rf_fac))
-  
+returnPolPlot <- function() {
   returnedPlot <- ggplot() +
-    geom_point(data=muns, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac, col="Municipalities"), size=0.2, alpha=0.3) +
-    scale_color_manual(values=c("Municipalities"="black", "red")) +
-    geom_polygon(data=hulls, mapping=aes(x = pol_or, y = gwh_tot / p_rf_fac, fill=name), alpha = 0.3) +
-    geom_point(data=muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac), col="red", size=2) +
-    geom_text_repel(data = muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac,label = name), bg.color = "white", col="orange") +
-    labs(title = "Political orientation vs exhaustion of PV potential", x="Political orientation", y="Exhaustion [%]", col="", fill="") +
+    geom_point(data=muns, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac, col="Swiss municipalities"), size=0.2) +
+    labs(title = "Political orientation vs exhaustion of PV potential", x="Political orientation", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
-    scale_x_continuous(breaks=c(-1, 0, 1), labels=c("left-leaning", "centrist", "right-leaning")) +
+    scale_x_continuous(breaks=c(-1, 0, 1),
+                       labels=c("left-leaning", "centrist", "right-leaning")) +
+    scale_color_manual(values="black") +
     theme_classic() +
     theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
   
@@ -47,21 +39,13 @@ returnPolPlot <- function(muns_soc, can_typ_soc) {
 }
 
 # Function that renders the plot with the home ownership rate
-returnHomePlot <- function(muns_soc, can_typ_soc) {
-  # generating hulls
-  hulls <- can_typ_soc %>%
-    group_by(name) %>%
-    slice(chull(own_frac, gwh_tot / p_rf_fac))
-  
+returnHomePlot <- function() {
   returnedPlot <- ggplot() +
-    geom_point(data=muns, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac, col="Municipalities"), size=0.2, alpha=0.3) +
-    scale_color_manual(values=c("Municipalities"="black", "red")) +
-    geom_polygon(data=hulls, mapping=aes(x = own_frac, y = gwh_tot / p_rf_fac, fill=name), alpha = 0.3) +
-    geom_point(data=muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac), col="red", size=2) +
-    geom_text_repel(data = muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac,label = name), bg.color = "white", col="orange") +
-    labs(title = "Home ownership rate vs exhaustion of PV potential", x="Home ownership rate [%]", y="Exhaustion [%]", col="", fill="") +
+    geom_point(data=muns, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac, col="Swiss municipalities"), size=0.2) +
+    labs(title = "Home ownership rate vs exhaustion of PV potential at municipality level", x="Home ownership rate [%]", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
+    scale_color_manual(values="black") +
     theme_classic() +
     theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
   
@@ -105,36 +89,21 @@ legend_labels_muns = c(paste("<", bins_muns[2] * 100, "%"),
 
 labels_cantons <- sprintf(
   "<strong>Canton %s</strong>
-  <br/>Population: %s
-  <br/>Installed PV power: %s kW
-  <br/>Current PV energy output: %s GWh
-  <br/>PV Potential: %s GWh
+  <br/>Population: %d
+  <br/>Installed PV power: %g kW
+  <br/>Current PV energy output: %g GWh
+  <br/>PV Potential: %g GWh
   <br/>PV Potential exhausted: %g%%
   <br/>Political orientation: %s
   <br/>Home ownership rate: %g%%",
   cantons$name, 
-  format(round(cantons$pop,0), big.mark="'"),
-  format(round(cantons$kw_tot,0), big.mark="'"),
-  format(round(cantons$gwh_tot,0), big.mark="'"),
-  format(round(cantons$p_rf_fac,0), big.mark="'"),
+  round(cantons$pop,0),
+  round(cantons$kw_tot,0),
+  round(cantons$gwh_tot,1),
+  round(cantons$p_rf_fac,1),
   round(cantons$gwh_tot / cantons$p_rf_fac * 100,1),
   cantons$pol_or_cat,
   round(cantons$own_frac * 100, 1)
-) %>% lapply(htmltools::HTML)
-
-info_switzerland <- sprintf(
-  "<strong>Switzerland</strong>
-  <br/>Population: %s
-  <br/>Installed PV power: %s kW
-  <br/>Current PV energy output: %s GWh
-  <br/>PV Potential: %s GWh
-  <br/>PV Potential exhausted: %g%%
-  <br/>Home ownership rate: 36%%",
-  format(round(ch$EINWOHNERZ,0), big.mark="'"),
-  format(round(ch$kw_tot,0), big.mark="'"),
-  format(round(ch$gwh_tot,0), big.mark="'"),
-  format(round(ch$p_rf_fac,0), big.mark="'"),
-  round(ch$gwh_tot / ch$p_rf_fac * 100,1)
 ) %>% lapply(htmltools::HTML)
 
 years <- seq(2004, 2022)
@@ -152,18 +121,6 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                 tags$head(tags$style(HTML("#controlPanel {
                                           background-color: white;
                                           padding-left: 10px;
-                                          border-radius: 4px;
-                                          }
-                                          #infoPanel {
-                                          background-color: white;
-                                          padding-left: 10px;
-                                          padding-right: 10px;
-                                          padding-top: 10px;
-                                          padding-bottom: 10px;
-                                          border-radius: 4px;
-                                          font-size: 12px;
-                                          border-color: black;
-                                          border-style: solid;
                                           }"))),
   fluidRow(
     column(9,
@@ -199,8 +156,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                          ),
                          radioButtons(inputId="add_info", label="Additional information",
                                       choices = c("Political orientation" = "pol", 
-                                                  "Home ownership" = "prop"), selected = "pol")),
-           absolutePanel(id = "infoPanel", fixed=F, bottom=20, left=30, uiOutput("infoBox"))
+                                                  "Home ownership" = "prop"), selected = "pol"))
     ),
     # the two plots displayed in a column on the right
     column(3,
@@ -242,23 +198,12 @@ server <- function(input, output, session) {
 
   output$plot <- renderPlot({returnPlot(graph_ch)})
   
-  # dataframes storing the currently selected municipalities, (cantons and municipality types) for the socioeconomic plots
-  # will be displayed as points
-  graph_muns_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-  # points for convex hulls
-  cantons_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-  types_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-  graph_cantons_typ_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-  
   # displaying the political orientation base plot
-  output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-  output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
+  output$pol_or_plot <- renderPlot({returnPolPlot()})
+  output$home_own_plot <- renderPlot({returnHomePlot()})
   
   # dataframes for multiple selection
   to_vis_map <<- data.frame()
-  
-  # filling the infobox
-  output$infoBox <- renderUI({info_switzerland})
   
   renderBaseCantons <- function(){
     # Other good options for basemap
@@ -348,18 +293,12 @@ server <- function(input, output, session) {
           potential <- st_drop_geometry(selected_df)[1, "p_rf_fac"]
           installed <- cumsum(c(viz[1,]))
           names(installed) <- c()
-          
-          # subsetting the dataframe for socioeconomic display
-          viz_soc <- filter(muns_shown_geom, name == selected_df$name[1]) %>%
-            select(name, gwh_tot, p_rf_fac, pol_or, own_frac) %>%
-            st_drop_geometry()
 
           # add to existing
           graph_muns <<- rbind(graph_muns, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
-          graph_muns_soc <<- rbind(graph_muns_soc, viz_soc)
           to_vis_map <<- rbind(to_vis_map, selected_df)
     
-          # display the clicked municipalities on the map 
+          # display the clicked municipalities on the map in red
           leafletProxy("map") %>%
             clearGroup("current_selection") %>%
             # add currently selected layer as red polygon as indication
@@ -375,10 +314,8 @@ server <- function(input, output, session) {
                 
           to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
           
-          # update the plots
+          # update the plot
           output$plot <- renderPlot({returnPlot(to_vis_graph)})
-          output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-          output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
         }
       }
     }
@@ -425,44 +362,23 @@ server <- function(input, output, session) {
           labels_muns <- sprintf(
             "<strong>%s</strong>
             <br/>Type: %s
-            <br/>Population: %s
-            <br/>Installed PV power: %s kW
-            <br/>Current PV energy output: %s GWh
-            <br/>PV Potential: %s GWh
+            <br/>Population: %d
+            <br/>Installed PV power: %g kW
+            <br/>Current PV energy output: %g GWh
+            <br/>PV Potential: %g GWh
             <br/>PV Potential exhausted: %g%%
             <br/>Political orientation: %s
             <br/>Home ownership rate: %g%%",
             muns_shown_geom$name, 
             muns_shown_geom$mun_type,
-            format(round(muns_shown_geom$pop,0), big.mark="'"),
-            format(round(muns_shown_geom$kw_tot,0), big.mark="'"),
-            format(round(muns_shown_geom$gwh_tot,1), big.mark="'"),
-            format(round(muns_shown_geom$p_rf_fac,1), big.mark="'"),
+            round(muns_shown_geom$pop,0),
+            round(muns_shown_geom$kw_tot,0),
+            round(muns_shown_geom$gwh_tot,1),
+            round(muns_shown_geom$p_rf_fac,1),
             round(muns_shown_geom$gwh_tot / muns_shown_geom$p_rf_fac * 100,1),
             muns_shown_geom$pol_or_cat,
             round(muns_shown_geom$own_frac * 100, 1)
           ) %>% lapply(htmltools::HTML)
-          
-          info_canton <- sprintf(
-            "<strong>Canton %s</strong>
-            <br/>Population: %s
-            <br/>Installed PV power: %s kW
-            <br/>Current PV energy output: %s GWh
-            <br/>PV Potential: %s GWh
-            <br/>PV Potential exhausted: %g%%
-            <br/>Political orientation: %s
-            <br/>Home ownership rate: %g%%",
-            canton$name, 
-            format(round(canton$pop,0), big.mark="'"),
-            format(round(canton$kw_tot,0), big.mark="'"),
-            format(round(canton$gwh_tot,0), big.mark="'"),
-            format(round(canton$p_rf_fac,0), big.mark="'"),
-            round(canton$gwh_tot / canton$p_rf_fac * 100,1),
-            canton$pol_or_cat,
-            round(canton$own_frac * 100, 1)
-          ) %>% lapply(htmltools::HTML)
-          
-          output$infoBox <- renderUI({info_canton})
               
           leafletProxy("map") %>%
             # set view and zoom level to selected canton
@@ -524,6 +440,26 @@ server <- function(input, output, session) {
                         fillColor="lightblue",
                         stroke = F,
                         fillOpacity=1)
+          
+          # updating the political orientation plot
+          output$pol_or_plot <- renderPlot({
+            returnPolPlot() +
+              scale_color_manual(values=c("red", "black")) +
+              geom_point(data=muns_shown_geom, 
+                         mapping=aes(x=pol_or, 
+                                     y = gwh_tot / p_rf_fac, 
+                                     col=paste("Municipalities of the canton of", cantons$name[cur_canton])), size=2)
+          })
+          
+          # updating the home ownership plot
+          output$home_own_plot <- renderPlot({
+            returnHomePlot() +
+              scale_color_manual(values=c("red", "black")) +
+              geom_point(data=muns_shown_geom, 
+                         mapping=aes(x=own_frac, 
+                                     y = gwh_tot / p_rf_fac, 
+                                     col=paste("Municipalities of the canton of", cantons$name[cur_canton])), size=2)
+          })
         }
       }
       back_button_clicked <<- F
@@ -562,28 +498,15 @@ server <- function(input, output, session) {
       
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
-      types_soc <<- filter(muns, mun_type %in% input$municipality_type) %>%
-        select(mun_type, gwh_tot, p_rf_fac, pol_or, own_frac) %>%
-        rename(name = mun_type) %>%
-        st_drop_geometry()
-      
-      graph_cantons_typ_soc <<- rbind(cantons_soc, types_soc)
-      
       # re-render plot with variables in to_vis_graph
       output$plot <- renderPlot({returnPlot(to_vis_graph)})
-      output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-      output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
     } else {
       graph_typ <<- data.frame()
       
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
-      types_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-      graph_cantons_typ_soc <<- rbind(cantons_soc, types_soc)
       
       # re-render plot with variables in to_vis_graph
       output$plot <- renderPlot({returnPlot(to_vis_graph)})
-      output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-      output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
     }
   })
   
@@ -619,29 +542,15 @@ server <- function(input, output, session) {
       
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
-      cantons_soc <<- filter(muns, canton %in% input$canton) %>%
-        select(canton, gwh_tot, p_rf_fac, pol_or, own_frac) %>%
-        rename(name = canton) %>%
-        st_drop_geometry()
-      
-      graph_cantons_typ_soc <<- rbind(cantons_soc, types_soc)
-      
       # re-render plot with variables in to_vis_graph
       output$plot <- renderPlot({returnPlot(to_vis_graph)})
-      output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-      output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
     } else {
       graph_cantons <<- data.frame()
       
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
-      cantons_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-      graph_cantons_typ_soc <<- rbind(cantons_soc, types_soc)
-      
       # re-render plot with variables in to_vis_graph
       output$plot <- renderPlot({returnPlot(to_vis_graph)})
-      output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-      output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
     }
   })
   
@@ -658,17 +567,10 @@ server <- function(input, output, session) {
       graph_cantons <<- data.frame()
       graph_typ <<- data.frame()
       
-      graph_muns_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-      cantons_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-      types_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-      graph_cantons_typ_soc <<- data.frame(name = character(0), gwh_tot = numeric(0), p_rf_fac = numeric(0), pol_or = numeric(0), own_frac = numeric(0))
-      
       to_vis_graph <<- rbind(graph_muns, graph_typ, graph_cantons, graph_ch)
       
       # re-render plot with variables in to_vis_graph
       output$plot <- renderPlot({returnPlot(to_vis_graph)})
-      output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-      output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
       
       # reset municipality and canton buttons
       updateSelectInput(session,
@@ -680,7 +582,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Logic of the back button
   observeEvent(input$back, {
     back_button_clicked <<- T
 
@@ -737,8 +638,9 @@ server <- function(input, output, session) {
     muns_shown <<- F
     cur_canton <<- 0
     
-    # Reset infobox
-    output$infoBox <- renderUI({info_switzerland})
+    # reset political orientation plot
+    output$pol_or_plot <- renderPlot({returnPolPlot()})
+    output$home_own_plot <- renderPlot({returnHomePlot()})
   })
 }
 

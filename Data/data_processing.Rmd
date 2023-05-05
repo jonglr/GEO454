@@ -47,20 +47,56 @@ muns <- muns_unproc %>%
   filter(BFS_NUMMER < 7000) %>%
   group_by(BFS_NUMMER) %>%
   summarize(name=max(NAME), knr = max(KANTONSNUM), pop=sum(EINWOHNERZ), geometry = st_union(geometry))
-```
 
-```{r}
 typ <- typology_unproc %>%
   group_by(TYP) %>%
   summarize(name=max(NAME), geometry = st_union(geometry))
 
-# getting population of typology
-typ_statpop <- st_join(x = typ, y = statpop_sf) 
-setDT(typ_statpop)
-typ_pop <- typ_statpop[, .(pop = sum(NUMMER, na.rm=T)), by="TYP"]
-rm(typ_statpop)
+typology_unproc <- typology_unproc %>%
+  mutate(name_eng = ifelse(NAME == "Grosszentren", "Big Centers",
+                           ifelse(NAME == "Nebenzentren der Grosszentren", "Secondary Centers Of Big Centers",
+                                  ifelse(NAME == "Gürtel der Grosszentren", "Crown Big Centers",
+                                         ifelse(NAME == "Mittelzentren", "Medium Centers", 
+                                                ifelse(NAME == "Gürtel der Mittelzentren", "Crown Medium Centers",
+                                                       ifelse(NAME == "Kleinzentren", "Small Centers",
+                                                              ifelse(NAME == "Periurbane ländliche Gemeinden", "Peri-urban Rural Communes",
+                                                                     ifelse(NAME == "Agrargemeinden", "Agricultural Communes", "Tourist Communes")))))))))
 
-typ <- left_join(typ, typ_pop, by="TYP")
+type_names <- c("Big Centers", "Secondary Centers Of Big Centers", "Crown Big Centers", "Medium Centers", "Crown Medium Centers", "Small Centers", "Peri-urban Rural Communes", "Agricultural Communes", "Tourist Communes")
+typ$name <- type_names
+```
+
+```{r}
+# getting population of typology --> was not necessary in the end
+#typ_statpop <- st_join(x = typ, y = statpop_sf) 
+#setDT(typ_statpop)
+#typ_pop <- typ_statpop[, .(pop = sum(NUMMER, na.rm=T)), by="TYP"]
+#rm(typ_statpop)
+
+#typ <- left_join(typ, typ_pop, by="TYP")
+
+# determining the municipality type of a municiaplity
+
+# converting municipality to point data
+muns_point <- muns %>%
+  select(BFS_NUMMER) %>%
+  mutate(gkode = st_coordinates(st_point_on_surface(geometry))[,1],
+         gkodn = st_coordinates(st_point_on_surface(geometry))[,2]) %>%
+  st_drop_geometry() %>%
+  st_as_sf(., coords=c("gkode", "gkodn"), crs=2056)
+
+muns_point_typ <- muns_point %>%
+  left_join(typology_unproc %>% st_drop_geometry(), by=c("BFS_NUMMER" = "GDE_NO")) %>%
+  st_join(typ, join=st_intersects) %>%
+  mutate(mun_type = ifelse(!is.na(name_eng), name_eng, name)) %>%
+  select(BFS_NUMMER, mun_type)
+
+muns <- muns %>%
+  left_join(muns_point_typ %>% st_drop_geometry(), by="BFS_NUMMER")
+
+# determining canton name of a municipality
+muns <- muns %>%
+  left_join(cantons %>% select(KANTONSNUM, name) %>% rename(knr = KANTONSNUM, canton = name) %>% st_drop_geometry(), by="knr")
 
 muns <- st_transform(muns, 2056)
 cantons <- st_transform(cantons, 2056)
