@@ -36,7 +36,7 @@ returnPolPlot <- function(muns_soc, can_typ_soc) {
     scale_color_manual(values=c("Municipalities"="black", "red")) +
     geom_polygon(data=hulls, mapping=aes(x = pol_or, y = gwh_tot / p_rf_fac, fill=name), alpha = 0.3) +
     geom_point(data=muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac), col="red", size=2) +
-    geom_text_repel(data = muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac,label = name), bg.color = "white", col="orange", fontface="bold") +
+    geom_text_repel(data = muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac,label = name), bg.color = "black", col="orange", fontface="bold") +
     labs(title = "Political orientation vs exhaustion of PV potential", x="Political orientation", y="Exhaustion [%]", col="", fill="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(breaks=c(-1, 0, 1), labels=c("left-leaning", "centrist", "right-leaning")) +
@@ -58,7 +58,7 @@ returnHomePlot <- function(muns_soc, can_typ_soc) {
     scale_color_manual(values=c("Municipalities"="black", "red")) +
     geom_polygon(data=hulls, mapping=aes(x = own_frac, y = gwh_tot / p_rf_fac, fill=name), alpha = 0.3) +
     geom_point(data=muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac), col="red", size=2) +
-    geom_text_repel(data = muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac,label = name), bg.color = "white", col="orange", fontface="bold") +
+    geom_text_repel(data = muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac,label = name), bg.color = "black", col="orange", fontface="bold") +
     labs(title = "Home ownership rate vs exhaustion of PV potential", x="Home ownership rate [%]", y="Exhaustion [%]", col="", fill="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
@@ -349,14 +349,23 @@ server <- function(input, output, session) {
           installed <- cumsum(c(viz[1,]))
           names(installed) <- c()
           
-          # subsetting the dataframe for socioeconomic display
-          viz_soc <- filter(muns_shown_geom, name == selected_df$name[1]) %>%
-            select(name, gwh_tot, p_rf_fac, pol_or, own_frac) %>%
-            st_drop_geometry()
-
+          # only add municipality to the plot if it is not already in the plot
+          if (!(selected_df$name[1] %in% graph_muns_soc$name)) {
+            # subsetting the dataframe for socioeconomic display
+            viz_soc <- filter(muns_shown_geom, name == selected_df$name[1]) %>%
+              select(name, gwh_tot, p_rf_fac, pol_or, own_frac) %>%
+              st_drop_geometry()
+  
+            # add to existing
+            graph_muns_soc <<- rbind(graph_muns_soc, viz_soc)
+            
+            # update the plots
+            output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
+            output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
+          }
+          
           # add to existing
           graph_muns <<- rbind(graph_muns, data.frame(years = years, installed = installed, name=selected_df$name[1], potential=potential))
-          graph_muns_soc <<- rbind(graph_muns_soc, viz_soc)
           to_vis_map <<- rbind(to_vis_map, selected_df)
     
           # display the clicked municipalities on the map 
@@ -377,8 +386,6 @@ server <- function(input, output, session) {
           
           # update the plots
           output$plot <- renderPlot({returnPlot(to_vis_graph)})
-          output$pol_or_plot <- renderPlot({returnPolPlot(graph_muns_soc, graph_cantons_typ_soc)})
-          output$home_own_plot <- renderPlot({returnHomePlot(graph_muns_soc, graph_cantons_typ_soc)})
         }
       }
     }
