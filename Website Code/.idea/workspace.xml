@@ -4,36 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bd766b3f-f18e-4fe4-a9d1-1472cb87835d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/About.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/About.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Background.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Background.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Blog-Template.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Contact.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Contact.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Post-Template.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/blog.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/post-1.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/post-2.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/post-3.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/post-4.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/post-5.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blog/post.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/0fd3416c.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/68f64b9d.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/8ad73f3c.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/Bildschirmfoto2023-03-08um11.09.40.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/Bildschirmfoto2023-03-08um11.09.51.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/Bildschirmfoto2023-03-08um11.10.05.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/nicepage.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/nicepage.js" beforeDir="false" />
-    </list>
+    <list default="true" id="bd766b3f-f18e-4fe4-a9d1-1472cb87835d" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -78,6 +49,7 @@
       <workItem from="1681722042502" duration="20000" />
       <workItem from="1681722079977" duration="177000" />
       <workItem from="1681722269556" duration="53000" />
+      <workItem from="1684308645069" duration="11000" />
     </task>
     <servers />
   </component>
