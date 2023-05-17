@@ -5,10 +5,10 @@ account: jorissenn
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 8604138
-bundleId: 7205752
+bundleId: 7230357
 url: https://jorissenn.shinyapps.io/geo454_solar_energy/
-when: 1683830848.20615
-lastSyncTime: 1683830848.20617
+when: 1684345501.63506
+lastSyncTime: 1684345501.63509
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .ipynb_checkpoints/data_processing-checkpoint.ipynb|data_processing.Rmd|rshiny_archive|rshiny_test|unprocessed_data

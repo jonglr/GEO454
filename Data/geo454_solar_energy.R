@@ -16,7 +16,7 @@ library(ggrepel)
 returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
     geom_line(mapping=aes(x = years, y =installed/potential, col=name), linewidth=1.5) +
-    labs(title = "Development of the exhaustion of solar energy potential", x="", y="Exhaustion [%]", col="") +
+    labs(title = "Development of PV potential exhaustion", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
     theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
@@ -37,7 +37,7 @@ returnPolPlot <- function(muns_soc, can_typ_soc) {
     geom_polygon(data=hulls, mapping=aes(x = pol_or, y = gwh_tot / p_rf_fac, fill=name), alpha = 0.3) +
     geom_point(data=muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac), col="red", size=2) +
     geom_text_repel(data = muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac,label = name), bg.color = "black", col="orange", fontface="bold") +
-    labs(title = "Political orientation vs exhaustion of PV potential", x="Political orientation", y="Exhaustion [%]", col="", fill="") +
+    labs(title = "Political orientation", x="Political orientation", y="Exhaustion [%]", col="", fill="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(breaks=c(-1, 0, 1), labels=c("left-leaning", "centrist", "right-leaning")) +
     theme_classic() +
@@ -59,7 +59,7 @@ returnHomePlot <- function(muns_soc, can_typ_soc) {
     geom_polygon(data=hulls, mapping=aes(x = own_frac, y = gwh_tot / p_rf_fac, fill=name), alpha = 0.3) +
     geom_point(data=muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac), col="red", size=2) +
     geom_text_repel(data = muns_soc, mapping=aes(x=own_frac, y = gwh_tot / p_rf_fac,label = name), bg.color = "black", col="orange", fontface="bold") +
-    labs(title = "Home ownership rate vs exhaustion of PV potential", x="Home ownership rate [%]", y="Exhaustion [%]", col="", fill="") +
+    labs(title = "Home ownership rate", x="Home ownership rate [%]", y="Exhaustion [%]", col="", fill="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
@@ -69,7 +69,7 @@ returnHomePlot <- function(muns_soc, can_typ_soc) {
 }
 
 # size of the map, can be 400, 600 or 800
-size <- 800
+size <- 600
 
 # Reading data and transforming to WGS84
 muns <- st_read("processed_data/municipalities/municipalities.shp")
@@ -88,20 +88,20 @@ bins_cantons <- c(0, 0.03, 0.04, 0.05, 0.06, 0.07)
 pal_cantons <- colorBin("YlOrRd", domain = cantons$gwh_tot/cantons$p_rf_fac, bins=bins_cantons)
 pal_cantons_man <- brewer.pal(length(bins_cantons)-1, "YlOrRd")
 legend_labels_cantons = c(paste("<", bins_cantons[2] * 100, "%"), 
-                          paste("<", bins_cantons[3] * 100, "%"), 
-                          paste("<", bins_cantons[4] * 100, "%"), 
-                          paste("<", bins_cantons[5] * 100, "%"), 
-                          paste("<", bins_cantons[6] * 100, "%"))
+                          paste(bins_cantons[2] * 100, HTML("&ndash;"), " <", bins_cantons[3] * 100, "%"), 
+                          paste(bins_cantons[3] * 100, HTML("&ndash;"), " <", bins_cantons[4] * 100, "%"), 
+                          paste(bins_cantons[4] * 100, HTML("&ndash;"), " <", bins_cantons[5] * 100, "%"), 
+                          paste(HTML("&ge;"), bins_cantons[5] * 100, "%"))
 
 # bins and color palette for the municipalities
 bins_muns <- c(0, 0.025, 0.05, 0.075, 0.1, 0.5)
 pal_muns <- colorBin("YlOrRd", domain = muns$gwh_tot/muns$p_rf_fac, bins=bins_muns)
 pal_muns_man <- brewer.pal(length(bins_muns)-1, "YlOrRd")
 legend_labels_muns = c(paste("<", bins_muns[2] * 100, "%"), 
-                       paste("<", bins_muns[3] * 100, "%"), 
-                       paste("<", bins_muns[4] * 100, "%"), 
-                       paste("<", bins_muns[5] * 100, "%"), 
-                       paste("<", bins_muns[6] * 100, "%"))
+                       paste(bins_muns[2] * 100, HTML("&ndash;"), " <", bins_muns[3] * 100, "%"), 
+                       paste(bins_muns[3] * 100, HTML("&ndash;"), " <", bins_muns[4] * 100, "%"), 
+                       paste(bins_muns[4] * 100, HTML("&ndash;"), " <", bins_muns[5] * 100, "%"), 
+                       paste(HTML("&ge;"), bins_muns[5] * 100, "%"))
 
 labels_cantons <- sprintf(
   "<strong>Canton %s</strong>
@@ -117,7 +117,7 @@ labels_cantons <- sprintf(
   format(round(cantons$kw_tot,0), big.mark="'"),
   format(round(cantons$gwh_tot,0), big.mark="'"),
   format(round(cantons$p_rf_fac,0), big.mark="'"),
-  round(cantons$gwh_tot / cantons$p_rf_fac * 100,1),
+  round(cantons$gwh_tot / cantons$p_rf_fac * 100,2),
   cantons$pol_or_cat,
   round(cantons$own_frac * 100, 1)
 ) %>% lapply(htmltools::HTML)
@@ -134,7 +134,7 @@ info_switzerland <- sprintf(
   format(round(ch$kw_tot,0), big.mark="'"),
   format(round(ch$gwh_tot,0), big.mark="'"),
   format(round(ch$p_rf_fac,0), big.mark="'"),
-  round(ch$gwh_tot / ch$p_rf_fac * 100,1)
+  round(ch$gwh_tot / ch$p_rf_fac * 100,2)
 ) %>% lapply(htmltools::HTML)
 
 years <- seq(2004, 2022)
@@ -150,64 +150,78 @@ if (size == 400){
 
 ui <- fluidPage(theme = shinytheme("sandstone"),
                 tags$head(tags$style(HTML("#controlPanel {
-                                          background-color: white;
+                                          background-color: rgba(255,255,255,0.8);
                                           padding-left: 10px;
+                                          padding-bottom: 10px;
                                           border-radius: 4px;
                                           }
                                           #infoPanel {
-                                          background-color: white;
+                                          background-color: rgba(255,255,255,0.8);
                                           padding-left: 10px;
                                           padding-right: 10px;
-                                          padding-top: 10px;
-                                          padding-bottom: 10px;
+                                          padding-top: 5px;
+                                          padding-bottom: 5px;
                                           border-radius: 4px;
-                                          font-size: 12px;
+                                          font-size: 9px;
                                           border-color: black;
                                           border-style: solid;
+                                          }
+                                          .filter-option-inner-inner {color: white;}
+                                          .radio label {font-size: 8px; line-height: 20px;}
+                                          .control-label[for='municipality_type'] {font-size: 8px;}
+                                          .control-label[for='canton'] {font-size: 8px;}
+                                          .control-label[for='add_info'] {font-size: 8px;}
+                                          .municipality_type .btn {padding: 4px; font-size: 6px; width: 84.515625px;}
+                                          .canton .btn {padding: 4px; font-size: 6px; width: 84.515625px;}
+                                          .form-group {margin-bottom: 0;}
                                           }"))),
   fluidRow(
     column(9,
            leafletOutput("map", height=size),
-           absolutePanel(id = "controlPanel", fixed=F, width=200, top=0, right=-30,
-                         #div(HTML("<b>Options</b>"), style="font-size: 20px;"),
+           absolutePanel(id = "controlPanel", fixed=F, width=120, top=0, right=-30,
                          p(),
-                         actionButton(
-                           inputId = "reset",
-                           label = "Clear selection"
-                         ),
-                         p(),
-                         div(HTML("<b>Add to the plots</b>"), style="font-size: 15px;"),
+                         div(HTML("<b>Add to the plots</b>"), style="font-size: 11px;"),
                          # choosing municipality type to be rendered in the plot
-                         pickerInput(
+                         div(class = "municipality_type", pickerInput(
                            inputId = "municipality_type",
                            label = "Municipality types",
                            choices = as.character(typ$name),
                            options = list(
                              `selected-text-format` = "count > 1"), 
                            multiple = T,
-                           width = 150
-                         ),
+                           choicesOpt = list(
+                             style = rep_len("font-size: 60%; line-height: 1.6;", length(typ$name))
+                           )
+                         )),
                          # choosing municipality type to be rendered in the plot
-                         pickerInput(
+                         div(class="canton", pickerInput(
                            inputId = "canton",
                            label = "Cantons",
                            choices = as.character(cantons$name),
                            options = list(
                              `selected-text-format` = "count > 1"), 
                            multiple = T,
-                           width = 150
-                         ),
+                           choicesOpt = list(
+                             style = rep_len("font-size: 60%; line-height: 1.6;", length(cantons$name))
+                           )
+                         )),
                          radioButtons(inputId="add_info", label="Additional information",
                                       choices = c("Political orientation" = "pol", 
-                                                  "Home ownership" = "prop"), selected = "pol")),
+                                                  "Home ownership" = "prop"), selected = "pol"),
+                         p(),
+                         actionButton(
+                           inputId = "reset",
+                           label = "Clear selection",
+                           style='padding: 4px; font-size:9px; background-color: #fd8d3c;'
+                         )),
            absolutePanel(id = "infoPanel", fixed=F, bottom=20, left=30, uiOutput("infoBox"))
     ),
     # the two plots displayed in a column on the right
     column(3,
-           plotOutput("plot"),
+           plotOutput("plot", height=size/2),
            # conditionalPanel with contents depending on the radio button
-           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot")), 
-           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot"))
+           conditionalPanel("input.add_info == 'pol'", plotOutput("pol_or_plot", height=size/2)), 
+           conditionalPanel("input.add_info == 'prop'", plotOutput("home_own_plot", height=size/2))
     )
   )
 )
@@ -445,7 +459,7 @@ server <- function(input, output, session) {
             format(round(muns_shown_geom$kw_tot,0), big.mark="'"),
             format(round(muns_shown_geom$gwh_tot,1), big.mark="'"),
             format(round(muns_shown_geom$p_rf_fac,1), big.mark="'"),
-            round(muns_shown_geom$gwh_tot / muns_shown_geom$p_rf_fac * 100,1),
+            round(muns_shown_geom$gwh_tot / muns_shown_geom$p_rf_fac * 100,2),
             muns_shown_geom$pol_or_cat,
             round(muns_shown_geom$own_frac * 100, 1)
           ) %>% lapply(htmltools::HTML)
@@ -464,7 +478,7 @@ server <- function(input, output, session) {
             format(round(canton$kw_tot,0), big.mark="'"),
             format(round(canton$gwh_tot,0), big.mark="'"),
             format(round(canton$p_rf_fac,0), big.mark="'"),
-            round(canton$gwh_tot / canton$p_rf_fac * 100,1),
+            round(canton$gwh_tot / canton$p_rf_fac * 100,2),
             canton$pol_or_cat,
             round(canton$own_frac * 100, 1)
           ) %>% lapply(htmltools::HTML)
