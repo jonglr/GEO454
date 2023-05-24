@@ -16,10 +16,12 @@ library(ggrepel)
 returnPlot <- function(dataframe) {
   returnedPlot <- ggplot(dataframe) +
     geom_line(mapping=aes(x = years, y =installed/potential, col=name), linewidth=1.5) +
-    labs(title = "Development of PV potential exhaustion", x="", y="Exhaustion [%]", col="") +
+    labs(title = "Development over time", x="", y="Exhaustion [%]", col="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
-    theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
+    theme(legend.position = "bottom", 
+          plot.title = element_text(face="bold", size=12), 
+          text=element_text(family="Roboto"))
   
   return(returnedPlot)
 }
@@ -39,9 +41,11 @@ returnPolPlot <- function(muns_soc, can_typ_soc) {
     geom_text_repel(data = muns_soc, mapping=aes(x=pol_or, y = gwh_tot / p_rf_fac,label = name), bg.color = "black", col="orange", fontface="bold") +
     labs(title = "Political orientation", x="Political orientation", y="Exhaustion [%]", col="", fill="") +
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
-    scale_x_continuous(breaks=c(-1, 0, 1), labels=c("left-leaning", "centrist", "right-leaning")) +
+    scale_x_continuous(breaks=c(-1, 0, 1), labels=c("left", "centrist", "right")) +
     theme_classic() +
-    theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
+    theme(legend.position = "bottom", 
+          plot.title = element_text(face="bold", size=12), 
+          text=element_text(family="Roboto"))
   
   return(returnedPlot)
 }
@@ -63,13 +67,16 @@ returnHomePlot <- function(muns_soc, can_typ_soc) {
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
-    theme(legend.position = "bottom", plot.title = element_text(face="bold"), text=element_text(family="Roboto"))
+    theme(legend.position = "bottom", 
+          plot.title = element_text(face="bold", size=12), 
+          text=element_text(family="Roboto"))
   
   return(returnedPlot)
 }
 
-# size of the map, can be 400, 600 or 800
+# size of the map
 size <- 600
+defaultZoom <- 7.7
 
 # Reading data and transforming to WGS84
 muns <- st_read("processed_data/municipalities/municipalities.shp")
@@ -80,7 +87,7 @@ ch <-  st_read("processed_data/switzerland/switzerland.shp")
 ch_simp <-  st_read("processed_data/switzerland/switzerland_simp.shp")
 lakes <-  st_read("processed_data/lakes/lakes.shp")
 
-zoom_lvls <- read.csv(paste0("processed_data/zoom_levels/zoom_levels_",size,".csv"))
+zoom_lvls <- read.csv("processed_data//zoom_levels.csv")
 energy_perspectives <- read.csv("processed_data/energieperspektive_2050.csv")
 
 # bins and color palette for the cantons
@@ -139,15 +146,6 @@ info_switzerland <- sprintf(
 
 years <- seq(2004, 2022)
 
-# height 400 --> 7.5, height 600 --> 8, height 800 --> 8.5
-if (size == 400){
-  defaultZoom <- 7.5
-} else if (size == 600) {
-  defaultZoom <- 8
-} else if (size == 800) {
-  defaultZoom <- 8.5
-}
-
 ui <- fluidPage(theme = shinytheme("sandstone"),
                 tags$head(tags$style(HTML("#controlPanel {
                                           background-color: rgba(255,255,255,0.8);
@@ -167,20 +165,23 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                           border-style: solid;
                                           }
                                           .filter-option-inner-inner {color: white;}
-                                          .radio label {font-size: 8px; line-height: 20px;}
-                                          .control-label[for='municipality_type'] {font-size: 8px;}
-                                          .control-label[for='canton'] {font-size: 8px;}
-                                          .control-label[for='add_info'] {font-size: 8px;}
+                                          .radio label {font-size: 8.5px; line-height: 20px;}
+                                          .control-label[for='municipality_type'] {font-size: 11px;}
+                                          .control-label[for='canton'] {font-size: 11px;}
+                                          .control-label[for='add_info'] {font-size: 11px;}
                                           .municipality_type .btn {padding: 4px; font-size: 6px; width: 84.515625px;}
                                           .canton .btn {padding: 4px; font-size: 6px; width: 84.515625px;}
                                           .form-group {margin-bottom: 0;}
+                                          .shiny-options-group > * {margin-bottom: 1px; margin-top: 2px}
+                                          #add_info {padding-top: 3px;}
+                                          #reset {margin-top: 0px; padding-top: 0px;}
                                           }"))),
   fluidRow(
     column(9,
            leafletOutput("map", height=size),
            absolutePanel(id = "controlPanel", fixed=F, width=120, top=0, right=-30,
                          p(),
-                         div(HTML("<b>Add to the plots</b>"), style="font-size: 11px;"),
+                         div(HTML("<b>Add to the plots</b>"), style="font-size: 13px;"),
                          # choosing municipality type to be rendered in the plot
                          div(class = "municipality_type", pickerInput(
                            inputId = "municipality_type",
@@ -190,7 +191,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                              `selected-text-format` = "count > 1"), 
                            multiple = T,
                            choicesOpt = list(
-                             style = rep_len("font-size: 60%; line-height: 1.6;", length(typ$name))
+                             style = rep_len("font-size: 80%; line-height: 1.6;", length(typ$name))
                            )
                          )),
                          # choosing municipality type to be rendered in the plot
@@ -202,17 +203,17 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                              `selected-text-format` = "count > 1"), 
                            multiple = T,
                            choicesOpt = list(
-                             style = rep_len("font-size: 60%; line-height: 1.6;", length(cantons$name))
+                             style = rep_len("font-size: 80%; line-height: 1.6;", length(cantons$name))
                            )
                          )),
-                         radioButtons(inputId="add_info", label="Additional information",
+                         radioButtons(inputId="add_info", label=HTML("Socioeconomic<br>information"),
                                       choices = c("Political orientation" = "pol", 
                                                   "Home ownership" = "prop"), selected = "pol"),
                          p(),
                          actionButton(
                            inputId = "reset",
                            label = "Clear selection",
-                           style='padding: 4px; font-size:9px; background-color: #fd8d3c;'
+                           style='padding: 4px; font-size:10px; background-color: #fd8d3c;'
                          )),
            absolutePanel(id = "infoPanel", fixed=F, bottom=20, left=30, uiOutput("infoBox"))
     ),
