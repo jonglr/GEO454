@@ -4,7 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bd766b3f-f18e-4fe4-a9d1-1472cb87835d" name="Changes" comment="" />
+    <list default="true" id="bd766b3f-f18e-4fe4-a9d1-1472cb87835d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GEO454-Solar-Energy.css" beforeDir="false" afterPath="$PROJECT_DIR$/GEO454-Solar-Energy.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GEO454-Solar-Energy.html" beforeDir="false" afterPath="$PROJECT_DIR$/GEO454-Solar-Energy.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Post-Template.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -50,6 +56,9 @@
       <workItem from="1681722079977" duration="177000" />
       <workItem from="1681722269556" duration="53000" />
       <workItem from="1684308645069" duration="11000" />
+      <workItem from="1684918789968" duration="369000" />
+      <workItem from="1684920344911" duration="7000" />
+      <workItem from="1684920361944" duration="68000" />
     </task>
     <servers />
   </component>
