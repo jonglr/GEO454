@@ -375,6 +375,7 @@ html {
 }
 body {
   margin: 0;
+    overflow: hidden;
 }
 article,
 aside,
@@ -41712,16 +41713,14 @@ a.u-link.u-text-hover-grey-90:hover {
 /*end-variables sitestylecss*/
  .u-header {
   background-image: none;
+     height: 100px;
 }
 
-.u-header .u-sheet-1 {
-  min-height: 124px;
-}
+
 
 .u-header .u-image-1 {
   width: 222px;
   height: 91px;
-  margin: 15px auto 0 -14px;
 }
 
 .u-header .u-logo-image-1 {
@@ -41730,7 +41729,7 @@ a.u-link.u-text-hover-grey-90:hover {
 }
 
 .u-header .u-menu-1 {
-  margin: -63px 0 42px auto;
+  margin: -63px 0 0px auto;
 }
 
 .u-header .u-nav-1 {

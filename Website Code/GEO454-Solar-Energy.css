@@ -1,26 +1,32 @@
  .u-section-1 {
   background-image: url("https://assets.nicepagecdn.com/aef56244/4289497/images/american-public-power-association-513dBrMJ_5w-unsplash-1.jpg");
-  min-height: 1027px;
+  height: 100vh;
 }
 
 .u-section-1 .u-text-1 {
-  font-weight: 700;
-  font-size: 4.5rem;
-  margin: 272px 146px 0;
+  font-weight: 900;
+  font-size: 4rem;
+  margin: 200px 146px 0;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+
 }
 
 .u-section-1 .u-text-2 {
-  font-size: 1.875rem;
-  margin: 32px 64px 0;
+  font-weight: 400;
+  font-size: 1.9rem;
+  margin: 50px 64px 0;
+  text-transform: capitalize;
 }
 
 .u-section-1 .u-btn-1 {
   font-weight: 700;
+  font-size: 1.5rem;
   text-transform: uppercase;
-  font-size: 0.875rem;
   letter-spacing: 1px;
   background-image: none;
-  margin: 100px auto 0;
+  margin: 60px auto 0;
   padding: 15px 30px 17px;
 }
 
@@ -28,7 +34,7 @@
   width: 806px;
   min-height: 146px;
   height: auto;
-  margin: 97px auto 60px;
+  margin: 60px auto 60px;
 }
 
 .u-section-1 .u-list-1 {
@@ -43,37 +49,16 @@
   column-gap: 0px;
 }
 
-.u-section-1 .u-container-layout-1 {
+.u-section-1 .number-container {
   padding: 10px 10px 5px;
 }
 
-.u-section-1 .u-text-3 {
-  font-size: 3rem;
-  font-weight: 700;
+.u-section-1 .number {
+  font-size: 4rem;
+  font-weight: 900;
   background-image: none;
   margin: 0 auto;
-}
-
-.u-section-1 .u-container-layout-2 {
-  padding: 10px 10px 5px;
-}
-
-.u-section-1 .u-text-4 {
-  font-size: 3rem;
-  font-weight: 700;
-  background-image: none;
-  margin: 0 auto;
-}
-
-.u-section-1 .u-container-layout-3 {
-  padding: 10px 10px 5px;
-}
-
-.u-section-1 .u-text-5 {
-  font-size: 3rem;
-  font-weight: 700;
-  background-image: none;
-  margin: 0 auto;
+  text-transform: capitalize;;
 }
 
 .u-section-1 .u-list-2 {
@@ -88,31 +73,15 @@
   column-gap: 0px;
 }
 
-.u-section-1 .u-container-layout-4 {
-  padding: 10px;
-}
-
-.u-section-1 .u-text-6 {
+.u-section-1 .number-subtitle {
   font-size: 1.25rem;
+  font-weight: 700;
   margin: 0 auto;
+  text-transform: capitalize;
 }
 
-.u-section-1 .u-container-layout-5 {
+.u-section-1 .number-subtitle-container {
   padding: 10px;
-}
-
-.u-section-1 .u-text-7 {
-  font-size: 1.25rem;
-  margin: 0 auto;
-}
-
-.u-section-1 .u-container-layout-6 {
-  padding: 10px;
-}
-
-.u-section-1 .u-text-8 {
-  font-size: 1.25rem;
-  margin: 0 auto;
 }
 
 @media (max-width: 1199px) {
@@ -350,13 +319,13 @@
 
 .u-section-2 .u-text-1 {
   font-weight: 700;
-  margin: 64px 20px 0;
+  margin: 30px 0;
 }
 
 .u-section-2 .u-text-2 {
   font-size: 1.125rem;
   background-image: none;
-  margin: 30px 20px 0;
+
 }
 
 .u-section-2 .u-image-1 {
@@ -373,7 +342,7 @@
 .u-section-2 .u-text-3 {
   font-size: 1.125rem;
   background-image: none;
-  margin: -402px 506px 60px 19px;
+  margin: -402px 506px 60px 0;
 }
 
 @media (max-width: 1199px) {
@@ -478,12 +447,12 @@
 
 .u-section-3 .u-text-1 {
   font-weight: 700;
-  margin: 50px 20px 0;
+  margin: 30px 0;
 }
 
 .u-section-3 .u-text-2 {
   font-size: 1.125rem;
-  margin: 30px 20px 0;
+
 }
 
 .u-section-3 .u-image-1 {
@@ -499,12 +468,12 @@
 
 .u-section-3 .u-text-3 {
   font-size: 1.125rem;
-  margin: 30px 20px 0;
+
 }
 
 .u-section-3 .u-text-4 {
   font-size: 1.125rem;
-  margin: 30px 20px 50px;
+  margin: 30px 0;
 }
 
 @media (max-width: 1199px) {
@@ -626,12 +595,12 @@
 
 .u-section-4 .u-text-1 {
   font-weight: 700;
-  margin: 50px 20px 0;
+  margin: 30px 0;
 }
 
 .u-section-4 .u-text-2 {
   font-size: 1.125rem;
-  margin: 30px 20px 29px;
+  text-align: justify;
 }
 
 @media (max-width: 1199px) {
@@ -722,7 +691,7 @@
 
 .u-section-6 .u-text-1 {
   font-weight: 700;
-  margin: 51px 20px 0;
+
 }
 
 .u-section-6 .u-text-2 {
@@ -798,18 +767,18 @@
 
 .u-section-6 .u-text-3 {
   font-size: 1.125rem;
-  margin: 33px 20px 0;
+
 }
 
 .u-section-6 .u-image-7 {
   width: 40px;
   height: 40px;
-  margin: 27px auto 0 20px;
+
 }
 
 .u-section-6 .u-text-4 {
   font-size: 1.125rem;
-  margin: -34px 69px 60px 51px;
+
 }
 
 .u-section-6 .u-btn-1 {
@@ -988,37 +957,33 @@
 
 .u-section-7 .u-text-1 {
   font-weight: 700;
-  margin: 60px 20px 0;
+  margin: 30px 0;
 }
 
 .u-section-7 .u-text-2 {
   font-weight: 700;
-  margin: 32px 20px 0;
+
 }
 
 .u-section-7 .u-text-3 {
   font-size: 1.125rem;
-  margin: 12px 20px 0;
+
 }
 
 .u-section-7 .u-text-4 {
   font-weight: 700;
-  margin: 32px 20px 0;
 }
 
 .u-section-7 .u-text-5 {
   font-size: 1.125rem;
-  margin: 12px 20px 0;
 }
 
 .u-section-7 .u-text-6 {
   font-weight: 700;
-  margin: 4px 20px 0;
 }
 
 .u-section-7 .u-text-7 {
   font-size: 1.125rem;
-  margin: 20px 20px 60px;
 }
 
 @media (max-width: 1199px) {
@@ -1139,12 +1104,14 @@
 
 .u-section-8 .u-text-1 {
   font-weight: 700;
-  margin: 60px 20px 0;
+  margin-top: 30px;
+
 }
 
 .u-section-8 .u-text-2 {
   font-size: 1.125rem;
-  margin: 30px 20px 0;
+  line-height: 1.7;
+
 }
 
 .u-section-8 .u-icon-1 {
@@ -1386,18 +1353,15 @@
   background-image: none;
 }
 
-.u-section-9 .u-sheet-1 {
-  min-height: 774px;
-}
 
 .u-section-9 .u-text-1 {
   font-weight: 700;
-  margin: 63px calc(((100% - 1140px) / 2)  + 20px) 0;
+  margin-top: 30px;
 }
 
 .u-section-9 .u-text-2 {
   font-size: 1.125rem;
-  margin: 28px calc(((100% - 1140px) / 2)  + 20px) 0;
+
 }
 
 .u-section-9 .u-list-1 {
@@ -1420,7 +1384,7 @@
 .u-section-9 .u-image-1 {
   width: 290px;
   height: 290px;
-  background-image: url("https://assets.nicepagecdn.com/aef56244/4289497/images/joris.JPEG");
+  background-image: url("images/joris.png");
   background-position: 96.68% 50%;
   margin: 60px auto 0;
 }
@@ -1447,7 +1411,7 @@
 .u-section-9 .u-image-2 {
   width: 290px;
   height: 290px;
-  background-image: url("https://assets.nicepagecdn.com/aef56244/4289497/images/Bildschirmfoto2023-05-24um09.40.23.png");
+  background-image: url("images/simeon.png");
   background-position: 50% 50%;
   margin: 60px auto 0;
 }
@@ -1474,7 +1438,7 @@
 .u-section-9 .u-image-3 {
   width: 290px;
   height: 290px;
-  background-image: url("https://assets.nicepagecdn.com/aef56244/4289497/images/Bildschirmfoto2023-05-08um22.58.30.png");
+  background-image: url("images/jon.png");
   background-position: 50%;
   margin: 60px auto 0;
 }
@@ -1538,3 +1502,16 @@
     padding-right: 10px;
   }
 }
+
+ .table_image{
+   margin-bottom: 30px;
+   margin-right: 20px;
+   margin-top: 6px;
+   --animation-custom_in-scale: 0.9;
+   height: 130px;
+ }
+
+ .table_text{
+   vertical-align: top;
+   margin: 10px;
+ }
