@@ -20,7 +20,7 @@ returnPlot <- function(dataframe) {
     scale_y_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
     theme(legend.position = "bottom", 
-          plot.title = element_text(face="bold", size=12), 
+          plot.title = element_text(face="bold", size=14), 
           text=element_text(family="Roboto"))
   
   return(returnedPlot)
@@ -44,7 +44,7 @@ returnPolPlot <- function(muns_soc, can_typ_soc) {
     scale_x_continuous(breaks=c(-1, 0, 1), labels=c("left", "centrist", "right")) +
     theme_classic() +
     theme(legend.position = "bottom", 
-          plot.title = element_text(face="bold", size=12), 
+          plot.title = element_text(face="bold", size=14), 
           text=element_text(family="Roboto"))
   
   return(returnedPlot)
@@ -68,7 +68,7 @@ returnHomePlot <- function(muns_soc, can_typ_soc) {
     scale_x_continuous(labels= percent_format(accuracy = 1, scale = 100)) +
     theme_classic() +
     theme(legend.position = "bottom", 
-          plot.title = element_text(face="bold", size=12), 
+          plot.title = element_text(face="bold", size=14), 
           text=element_text(family="Roboto"))
   
   return(returnedPlot)
@@ -155,33 +155,33 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                           }
                                           #infoPanel {
                                           background-color: rgba(255,255,255,0.8);
-                                          padding-left: 10px;
-                                          padding-right: 10px;
-                                          padding-top: 5px;
-                                          padding-bottom: 5px;
+                                          padding-left: 5px;
+                                          padding-right: 5px;
+                                          padding-top: 4px;
+                                          padding-bottom: 4px;
                                           border-radius: 4px;
-                                          font-size: 9px;
+                                          font-size: 10px;
                                           border-color: black;
                                           border-style: solid;
                                           }
                                           .filter-option-inner-inner {color: white;}
-                                          .radio label {font-size: 8.5px; line-height: 20px;}
-                                          .control-label[for='municipality_type'] {font-size: 11px;}
-                                          .control-label[for='canton'] {font-size: 11px;}
-                                          .control-label[for='add_info'] {font-size: 11px;}
-                                          .municipality_type .btn {padding: 4px; font-size: 6px; width: 84.515625px;}
-                                          .canton .btn {padding: 4px; font-size: 6px; width: 84.515625px;}
+                                          .radio label {font-size: 9px; line-height: 20px;}
+                                          .control-label[for='municipality_type'] {font-size: 12px;}
+                                          .control-label[for='canton'] {font-size: 12px;}
+                                          .control-label[for='add_info'] {font-size: 12px;}
+                                          .municipality_type .btn {padding: 4px; font-size: 7px; width: 93.0156px;}
+                                          .canton .btn {padding: 4px; font-size: 7px; width: 93.0156px;}
                                           .form-group {margin-bottom: 0;}
-                                          .shiny-options-group > * {margin-bottom: 1px; margin-top: 2px}
+                                          .shiny-options-group > * {margin-bottom: 1px; margin-top: 2px;}
                                           #add_info {padding-top: 3px;}
-                                          #reset {margin-top: 0px; padding-top: 0px;}
+                                          #reset {margin-top: 2px; padding-top: 0px;}
+                                          #back {display: flex; justify-content: left;}
                                           }"))),
   fluidRow(
     column(9,
            leafletOutput("map", height=size),
-           absolutePanel(id = "controlPanel", fixed=F, width=120, top=0, right=-30,
-                         p(),
-                         div(HTML("<b>Add to the plots</b>"), style="font-size: 13px;"),
+           absolutePanel(id = "controlPanel", fixed=F, width=120, top=0, right=-25,
+                         div(HTML("<b>Add to the plots</b>"), style="font-size: 14px;"),
                          # choosing municipality type to be rendered in the plot
                          div(class = "municipality_type", pickerInput(
                            inputId = "municipality_type",
@@ -209,7 +209,6 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                          radioButtons(inputId="add_info", label=HTML("Socioeconomic<br>information"),
                                       choices = c("Political orientation" = "pol", 
                                                   "Home ownership" = "prop"), selected = "pol"),
-                         p(),
                          actionButton(
                            inputId = "reset",
                            label = "Clear selection",
@@ -284,9 +283,6 @@ server <- function(input, output, session) {
                                      zoomSnap = 0.1,
                                      zoomDelta = 1,
                                      minZoom = defaultZoom)) %>%
-        #addProviderTiles(providers$CartoDB.PositronNoLabels,
-        #                 options = providerTileOptions(noWrap = TRUE)
-        #) %>%
         addPolygons(data=cantons, 
                     group = "base_cantons",
                     weight = 2,
