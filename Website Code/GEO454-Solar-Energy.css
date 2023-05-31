@@ -1,16 +1,83 @@
- .u-section-1 {
-  background-image: url("https://assets.nicepagecdn.com/aef56244/4289497/images/american-public-power-association-513dBrMJ_5w-unsplash-1.jpg");
+#sdg7{
+  display: inline-block;
+  height: 150px;
+  width: 150px;
+  background-image: url("images/sdg7.png");
+  background-size: 150px;
+  margin: 0px 20px 0px 20px;
+}
+
+#sdg7:hover{
+  background-image: url("images/sdg7c.png");
+  box-shadow: 0px 0px 30px 2px rgba(255,202,28,0.7);
+  transition-duration:0.2s;
+}
+
+#sdg9{
+  display: inline-block;
+  height: 150px;
+  width: 150px;
+  background-image: url("images/sdg9.png");
+  background-size: 150px;
+  margin: 0px 20px 0px 20px;
+}
+
+#sdg9:hover{
+  background-image: url("images/sdg9c.png");
+  box-shadow: 0px 0px 30px 2px rgba(242,109,36,0.7);
+  transition-duration:0.2s;
+}
+
+#sdg11{
+  display: inline-block;
+  height: 150px;
+  width: 150px;
+  background-image: url("images/sdg11.png");
+  background-size: 150px;
+  margin: 0px 20px 0px 20px;
+}
+
+#sdg11:hover{
+  background-image: url("images/sdg11c.png");
+  box-shadow: 0px 0px 30px 2px rgba(255,187,50,0.7);
+  transition-duration:0.2s;
+}
+
+#sdg13{
+  display: inline-block;
+  height: 150px;
+  width: 150px;
+  background-image: url("images/sdg13.png");
+  background-size: 150px;
+  margin: 0px 20px 0px 20px;
+}
+
+#sdg13:hover{
+  background-image: url("images/sdg13c.png");
+  box-shadow: 0px 0px 30px 2px rgba(86,137,77,0.7);
+  transition-duration:0.2s;
+}
+
+
+.u-section-1 {
+  background-image: url("images/cover.jpg");
   height: 100vh;
 }
 
 .u-section-1 .u-text-1 {
   font-weight: 900;
   font-size: 4rem;
-  margin: 200px 146px 0;
+  margin: 169px 146px 0;
   text-transform: capitalize;
   letter-spacing: 0.5px;
   line-height: 1.2;
+  z-index: 2.0;
+}
 
+.sdg {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .u-section-1 .u-text-2 {
@@ -22,7 +89,7 @@
 
 .u-section-1 .u-btn-1 {
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   background-image: none;
@@ -313,9 +380,7 @@
   background-image: none;
 }
 
-.u-section-2 .u-sheet-1 {
-  min-height: 812px;
-}
+
 
 .u-section-2 .u-text-1 {
   font-weight: 700;
@@ -342,7 +407,7 @@
 .u-section-2 .u-text-3 {
   font-size: 1.125rem;
   background-image: none;
-  margin: -402px 506px 60px 0;
+  margin: -402px 506px 20px 0;
 }
 
 @media (max-width: 1199px) {
@@ -1391,10 +1456,12 @@
 
 .u-section-9 .u-text-3 {
   margin: 20px 0 0;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .u-section-9 .u-text-4 {
-  margin: 20px 0 0;
+  margin: 5px 0 0;
 }
 
 .u-section-9 .u-icon-1 {
@@ -1418,10 +1485,12 @@
 
 .u-section-9 .u-text-5 {
   margin: 20px 0 0;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .u-section-9 .u-text-6 {
-  margin: 20px 0 0;
+  margin: 5px 0 0;
 }
 
 .u-section-9 .u-icon-2 {
@@ -1445,10 +1514,12 @@
 
 .u-section-9 .u-text-7 {
   margin: 20px 0 0;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .u-section-9 .u-text-8 {
-  margin: 20px 0 0;
+  margin: 5px 0 0;
 }
 
 .u-section-9 .u-icon-3 {

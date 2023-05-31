@@ -7255,7 +7255,9 @@ section.u-image:not(.u-hover-box),
 }
 .u-body .u-sheet .u-sheet {
   width: 100% !important;
+    scrollbar-width: none;
 }
+
 .u-container-layout {
   position: relative;
   flex: 1;
@@ -40809,6 +40811,7 @@ a.u-link.u-text-hover-grey-90:hover {
         {
             color: #111111 !important;
             background-color: #ffffff !important;
+            box-shadow: 0px 0px 50px 1px rgba(255,255,255,0.16);
         }
 
         a.u-link.u-hover-custom-color-1:hover {
@@ -41502,8 +41505,8 @@ a.u-link.u-text-hover-grey-90:hover {
         }
         p:not(.u-text-variant)
         {
-        margin-top: 20px;
-        margin-bottom: 20px;
+        margin-top: 15px;
+        margin-bottom: 15px;
         }
         .u-btn
         {
